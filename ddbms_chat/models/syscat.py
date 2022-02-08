@@ -16,7 +16,17 @@ class Site:
 class Table:
     id: int
     name: str
-    key: str
+
+
+@dataclass
+class Column:
+    id: int
+    name: str
+    table: Table
+    type: str
+    pk: int
+    notnull: int
+    unique: int
 
 
 @dataclass

@@ -1,6 +1,5 @@
 from ddbms_chat.models.syscat import Fragment
-from ddbms_chat.tables import TABLES
-
+from ddbms_chat.syscat.tables import TABLES
 
 FRAGMENTS = [
     Fragment(
@@ -19,7 +18,7 @@ FRAGMENTS = [
         id=5,
         name="message_1",
         type="DH",
-        logic="group<>message_1",
+        logic="group|><message_1",
         parent=1,
         table=TABLES[2],
     ),
@@ -27,7 +26,7 @@ FRAGMENTS = [
         id=6,
         name="message_2",
         type="DH",
-        logic="group<>message_2",
+        logic="group|><message_2",
         parent=2,
         table=TABLES[2],
     ),
@@ -35,7 +34,7 @@ FRAGMENTS = [
         id=7,
         name="message_3",
         type="DH",
-        logic="group<>message_3",
+        logic="group|><message_3",
         parent=3,
         table=TABLES[2],
     ),
@@ -43,7 +42,7 @@ FRAGMENTS = [
         id=8,
         name="message_4",
         type="DH",
-        logic="group<>message_4",
+        logic="group|><message_4",
         parent=4,
         table=TABLES[2],
     ),

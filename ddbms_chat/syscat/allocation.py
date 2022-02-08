@@ -1,7 +1,6 @@
+from ddbms_chat.syscat.fragments import FRAGMENTS
 from ddbms_chat.models.syscat import Allocation
-from ddbms_chat.sites import SITES
-from ddbms_chat.fragments import FRAGMENTS
-
+from ddbms_chat.syscat.sites import SITES
 
 ALLOCATION = [
     Allocation(FRAGMENTS[0], SITES[0]),
