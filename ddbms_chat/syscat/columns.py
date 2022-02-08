@@ -1,10 +1,11 @@
 from ddbms_chat.models.syscat import Column
 from ddbms_chat.syscat.tables import TABLES
+from ddbms_chat.utils import PyQL
 
 
 # user table columns
 
-COLUMNS = (
+COLUMNS = PyQL(
     [
         Column(
             id=1,

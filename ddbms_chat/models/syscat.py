@@ -11,11 +11,17 @@ class Site:
     user: str
     password: str
 
+    def __eq__(self, o):
+        return (type(self) == type(o)) and (self.id == o.id)
+
 
 @dataclass
 class Table:
     id: int
     name: str
+
+    def __eq__(self, o):
+        return (type(self) == type(o)) and (self.id == o.id)
 
 
 @dataclass
@@ -28,6 +34,9 @@ class Column:
     notnull: int
     unique: int
 
+    def __eq__(self, o):
+        return (type(self) == type(o)) and (self.id == o.id)
+
 
 @dataclass
 class Fragment:
@@ -38,8 +47,18 @@ class Fragment:
     parent: int
     table: Table
 
+    def __eq__(self, o):
+        return (type(self) == type(o)) and (self.id == o.id)
+
 
 @dataclass
 class Allocation:
     fragment: Fragment
     site: Site
+
+    def __eq__(self, o):
+        return (
+            (type(self) == type(o))
+            and (self.fragment == o.fragment)
+            and (self.site == o.site)
+        )
