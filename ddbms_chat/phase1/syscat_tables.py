@@ -2,6 +2,7 @@ from pymysql.cursors import Cursor
 
 from ddbms_chat.config import PROJECT_ROOT
 from ddbms_chat.syscat.allocation import ALLOCATION
+from ddbms_chat.syscat.columns import COLUMNS
 from ddbms_chat.syscat.fragments import FRAGMENTS
 from ddbms_chat.syscat.sites import SITES
 from ddbms_chat.syscat.tables import TABLES
@@ -19,7 +20,7 @@ def setup_tables(cursor: Cursor):
 
 
 def fill_tables(cursor: Cursor):
-    for items in [SITES, TABLES, FRAGMENTS, ALLOCATION]:
+    for items in [SITES, TABLES, FRAGMENTS, ALLOCATION, COLUMNS]:
         table_name = items[0].__class__.__name__
         print(f"    Creating {table_name}")
         for item in items:

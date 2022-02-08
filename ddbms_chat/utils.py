@@ -11,8 +11,23 @@ class PyQL:
     def __init__(self, item_list: List):
         self.items = item_list
 
+    def __len__(self):
+        return len(self.items)
+
     def __getitem__(self, idx):
         return self.items[idx]
+
+    def __add__(self, o):
+        if len(self.items) == 0:
+            return o
+
+        if len(o.items) == 0:
+            return self
+
+        if type(self[0]) != type(o[0]):
+            raise ValueError("Incompatible types")
+
+        return PyQL(self.items + o.items)
 
     def where(self, **kwargs):
         current_list = deepcopy(self.items)

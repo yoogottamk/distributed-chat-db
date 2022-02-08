@@ -5,6 +5,6 @@ CREATE TABLE IF NOT EXISTS `L117`.`site` (
   `user` VARCHAR(45) NOT NULL,
   `password` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `name_UNIQUE` (`name` ASC) VISIBLE,
-  UNIQUE INDEX `ip_UNIQUE` (`ip` ASC) VISIBLE)
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC),
+  UNIQUE INDEX `ip_UNIQUE` (`ip` ASC))
 ENGINE = InnoDB

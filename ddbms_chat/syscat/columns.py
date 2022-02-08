@@ -26,15 +26,6 @@ COLUMNS = PyQL(
             unique=False,
         ),
         Column(
-            id=2,
-            name="name",
-            table=TABLES[0],
-            type="str",
-            pk=False,
-            notnull=True,
-            unique=False,
-        ),
-        Column(
             id=3,
             name="username",
             table=TABLES[0],

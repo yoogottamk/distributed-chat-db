@@ -19,6 +19,7 @@ class Site:
 class Table:
     id: int
     name: str
+    fragment_type: str
 
     def __eq__(self, o):
         return (type(self) == type(o)) and (self.id == o.id)
@@ -42,7 +43,6 @@ class Column:
 class Fragment:
     id: int
     name: str
-    type: str
     logic: str
     parent: int
     table: Table
