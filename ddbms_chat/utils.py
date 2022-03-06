@@ -1,10 +1,17 @@
+import inspect
+import logging
+import os
+import re
 from copy import deepcopy
+from types import GeneratorType
 from typing import List
 
 import pymysql
 
 from ddbms_chat.config import DB_NAME
 from ddbms_chat.models.syscat import Site
+
+log = logging.getLogger("ddbms_chat")
 
 
 class PyQL:
@@ -63,3 +70,36 @@ class DBConnection:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.conn.close()
+
+
+def inspect_object(o):
+    members = inspect.getmembers(o)
+    values = {}
+
+    for name, value in members:
+        if name.startswith("__"):
+            continue
+
+        if callable(value):
+            signature = inspect.signature(value)
+            if len(signature.parameters) == 0:
+                ret_val = value()
+                if isinstance(ret_val, GeneratorType):
+                    ret_val = list(ret_val)
+                values[name] = ret_val
+            else:
+                values[name] = signature
+        else:
+            values[name] = value
+
+    return values
+
+
+def debug_log(msg: str, *args):
+    caller_name = inspect.stack()[1].function
+
+    if debug_caller_re := os.getenv("DDBMS_CHAT_DEBUG_ONLY"):
+        if re.match(debug_caller_re, caller_name) is None:
+            return
+
+    log.debug(f"[{caller_name}] {msg}", *args)
