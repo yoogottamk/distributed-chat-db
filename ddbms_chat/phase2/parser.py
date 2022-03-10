@@ -27,9 +27,9 @@ def parse_sql(sql: str) -> Statement:
         )
     )[0]
 
-    if not sqlvalidator.parse(str(parsed_query)).is_valid():
-        # TODO: raise warning or something
-        pass
+    # if not sqlvalidator.parse(str(parsed_query)).is_valid():
+    #     # TODO: raise warning or something
+    #     pass
 
     return parsed_query
 
@@ -46,7 +46,7 @@ def _resolve_column_alias(column_name: str, table_alias_map: Dict[str, str]):
 
     table_alias, column_name = column_name.split(".", 2)
 
-    return f"{table_alias_map[table_alias]}.{column_name}"
+    return f"{table_alias_map[table_alias]}.{column_name.strip('`')}"
 
 
 def _resolve_column_aliases(
@@ -60,11 +60,11 @@ def _resolve_column_aliases(
     # extract table aliases
     for table in tables:
         alias = table.get_alias()
-        name = table.get_real_name()
+        name = table.get_real_name().strip("`")
         if alias is None:
             table_alias_map[name] = name
         else:
-            table_alias_map[alias] = name
+            table_alias_map[alias.strip("`")] = name
 
     table_names = list(set(table_alias_map.values()))
 
@@ -86,9 +86,9 @@ def _parse_comparison(token: Comparison, table_alias_map: Dict[str, str]) -> Con
         filter(lambda x: x._get_repr_name() == "Comparison", token.tokens)
     )[0]
     return Condition(
-        _resolve_column_alias(token.left.value, table_alias_map),
+        _resolve_column_alias(token.left.value, table_alias_map).strip("`"),
         operation_token.value,
-        _resolve_column_alias(token.right.value, table_alias_map),
+        _resolve_column_alias(token.right.value, table_alias_map).strip("`"),
     )
 
 
@@ -131,6 +131,41 @@ def _parse_condition_list(
         return conditions[0]
 
     return combiner(conditions)
+
+
+def _reduce_condition(condition: Union[Condition, ConditionAnd, ConditionOr]):
+    """
+    reduce ConditionAnd and ConditionOr logically
+
+    eg:
+        ConditionAnd([Condition, ConditionAnd, ConditionAnd]) ->
+            ConditionAnd([Condition, *ConditionAnd.conditions, *ConditionAnd.conditions])
+
+    basically, unpack conditions of same type within that type
+
+    A && ((B && C) && D) -> A && B && C && D
+    """
+    # already reduced
+    if type(condition) is Condition:
+        return condition
+
+    # now only ConditionOr and ConditionAnd left
+    # add assert to make type checker happy
+    assert (type(condition) is ConditionAnd) or (type(condition) is ConditionOr)
+
+    parent_type = type(condition)
+    final_conditions = []
+
+    for child_condition in condition.conditions:
+        if type(child_condition) is Condition:
+            final_conditions.append(child_condition)
+        elif type(child_condition) is parent_type:
+            for grandchild_condition in child_condition.conditions:
+                final_conditions.append(_reduce_condition(grandchild_condition))
+        else:
+            final_conditions.append(_reduce_condition(condition))
+
+    return parent_type(final_conditions)
 
 
 def parse_select(sql: Statement) -> SelectQuery:
@@ -181,6 +216,7 @@ def parse_select(sql: Statement) -> SelectQuery:
         if type(token) is Where:
             where_clause = token
             prev_keyword = token
+            continue
 
         # error?
         if prev_keyword is None:
@@ -191,7 +227,9 @@ def parse_select(sql: Statement) -> SelectQuery:
             token: IdentifierList
             assert token.is_group, "Invalid query?"
 
-            columns += list(map(lambda x: x.value, (token.get_identifiers())))
+            columns += list(
+                map(lambda x: x.value.strip("`"), (token.get_identifiers()))
+            )
             prev_keyword = None
             continue
 
@@ -261,8 +299,10 @@ def parse_select(sql: Statement) -> SelectQuery:
     return SelectQuery(
         column_names,
         table_names,
-        ConditionAnd(
-            [_parse_condition_list(cond, table_alias_map) for cond in conditions]
+        _reduce_condition(
+            ConditionAnd(
+                [_parse_condition_list(cond, table_alias_map) for cond in conditions]
+            )
         ),
         group_by,
         having_clause,

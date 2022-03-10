@@ -102,4 +102,4 @@ def debug_log(msg: str, *args):
         if re.match(debug_caller_re, caller_name) is None:
             return
 
-    log.debug(f"[{caller_name}] {msg}", *args)
+    log.debug(f"[{caller_name}] {msg}", stacklevel=2, *args)
