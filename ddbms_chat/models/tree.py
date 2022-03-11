@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import List, Union
+from typing import List, Optional, Union
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr
 
@@ -33,19 +33,19 @@ class ProjectionNode(TreeNode):
         return f"<Project {self.columns}>"
 
     def __hash__(self) -> int:
-        return hash(tuple(self.__class__.__name__, *self.columns))
+        return hash((self.__class__.__name__, *self.columns))
 
 
 class JoinNode(TreeNode):
-    def __init__(self, join_condition: Condition):
+    def __init__(self, condition: Optional[Condition] = None):
         super().__init__()
-        self.join_condition = join_condition
+        self.condition = condition
 
     def __str__(self) -> str:
-        return f"<Join {self.join_condition}>"
+        return f"<Join {self.condition if self.condition else '(X)'}>"
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.join_condition))
+        return hash((self.__class__.__name__, self.condition))
 
 
 class UnionNode(TreeNode):
