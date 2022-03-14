@@ -77,47 +77,39 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
         if table.fragment_type == "-":
             continue
 
-        if table.fragment_type == "V":
-            fragments = syscat_fragments.where(table=table.id)
+        get_node = (
+            lambda: JoinNode(Condition("id", "=", "id"))
+            if table.fragment_type == "V"
+            else UnionNode()
+        )
 
-            tmp_node = JoinNode(Condition("id", "=", "id"))
+        fragments = syscat_fragments.where(table=table.id)
 
-            for fragment in fragments[:2]:
-                rel_node = RelationNode(fragment.name)
-                rel_node.is_localized = True
-                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-                qt.add_node(rel_node, shape="rectangle", style="filled")
+        tmp_node = get_node()
 
-                qt.add_edge(tmp_node, rel_node)
+        for fragment in fragments[:2]:
+            rel_node = RelationNode(fragment.name)
+            rel_node.is_localized = True
+            rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+            qt.add_node(rel_node, shape="rectangle", style="filled")
 
-            for fragment in fragments[2:]:
-                rel_node = RelationNode(fragment.name)
-                rel_node.is_localized = True
-                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-                qt.add_node(rel_node, shape="rectangle", style="filled")
+            qt.add_edge(tmp_node, rel_node)
 
-                new_join_node = JoinNode(Condition("id", "=", "id"))
-                qt.add_edge(new_join_node, tmp_node)
-                qt.add_edge(new_join_node, rel_node)
+        for fragment in fragments[2:]:
+            rel_node = RelationNode(fragment.name)
+            rel_node.is_localized = True
+            rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+            qt.add_node(rel_node, shape="rectangle", style="filled")
 
-                tmp_node = new_join_node
+            new_join_node = get_node()
+            qt.add_edge(new_join_node, tmp_node)
+            qt.add_edge(new_join_node, rel_node)
 
-            for in_edge, _ in qt.in_edges(relation_node):
-                qt.add_edge(in_edge, tmp_node)
-            qt.remove_node(relation_node)
+            tmp_node = new_join_node
 
-        if table.fragment_type == "H" or table.fragment_type == "DH":
-            replacement_node = UnionNode()
-            for in_edge, _ in qt.in_edges(relation_node):
-                qt.add_edge(in_edge, replacement_node)
-            qt.remove_node(relation_node)
-
-            for fragment in syscat_fragments.where(table=table.id):
-                rel_node = RelationNode(fragment.name)
-                rel_node.is_localized = True
-                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-                qt.add_node(rel_node, shape="rectangle", style="filled")
-                qt.add_edge(replacement_node, rel_node)
+        for in_edge, _ in qt.in_edges(relation_node):
+            qt.add_edge(in_edge, tmp_node)
+        qt.remove_node(relation_node)
 
     to_pydot(qt).write_png("qt-loc.png")
 
