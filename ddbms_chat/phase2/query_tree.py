@@ -15,7 +15,7 @@ from ddbms_chat.models.tree import (
 from ddbms_chat.phase2.parser import parse_select, parse_sql
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.phase2.utils import to_pydot
-from ddbms_chat.utils import debug_log, inspect_object
+from ddbms_chat.utils import debug_log
 
 (
     syscat_allocation,
@@ -68,6 +68,9 @@ def get_relation_head(qt: nx.DiGraph, node):
 
 
 def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
+    """
+    localize all relations
+    """
     for relation_node in nodes:
         tables = syscat_tables.where(name=relation_node.name)
 
@@ -75,40 +78,46 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
         table: Table = tables[0]
 
         if table.fragment_type == "-":
-            continue
+            fragment = syscat_fragments.where(table=table.id)[0]
+            new_relation_root = RelationNode(relation_node.name)
+            new_relation_root.is_localized = True
+            new_relation_root.site_id = syscat_allocation.where(fragment=fragment.id)[
+                0
+            ].site
+            qt.add_node(new_relation_root, shape="rectangle", style="filled")
+        else:
+            get_node = (
+                lambda: JoinNode(Condition("id", "=", "id"))
+                if table.fragment_type == "V"
+                else UnionNode()
+            )
 
-        get_node = (
-            lambda: JoinNode(Condition("id", "=", "id"))
-            if table.fragment_type == "V"
-            else UnionNode()
-        )
+            fragments = syscat_fragments.where(table=table.id)
 
-        fragments = syscat_fragments.where(table=table.id)
+            new_relation_root = get_node()
 
-        tmp_node = get_node()
+            for fragment in fragments[:2]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
 
-        for fragment in fragments[:2]:
-            rel_node = RelationNode(fragment.name)
-            rel_node.is_localized = True
-            rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-            qt.add_node(rel_node, shape="rectangle", style="filled")
+                qt.add_edge(new_relation_root, rel_node)
 
-            qt.add_edge(tmp_node, rel_node)
+            for fragment in fragments[2:]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
 
-        for fragment in fragments[2:]:
-            rel_node = RelationNode(fragment.name)
-            rel_node.is_localized = True
-            rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-            qt.add_node(rel_node, shape="rectangle", style="filled")
+                new_join_node = get_node()
+                qt.add_edge(new_join_node, new_relation_root)
+                qt.add_edge(new_join_node, rel_node)
 
-            new_join_node = get_node()
-            qt.add_edge(new_join_node, tmp_node)
-            qt.add_edge(new_join_node, rel_node)
-
-            tmp_node = new_join_node
+                new_relation_root = new_join_node
 
         for in_edge, _ in qt.in_edges(relation_node):
-            qt.add_edge(in_edge, tmp_node)
+            qt.add_edge(in_edge, new_relation_root)
         qt.remove_node(relation_node)
 
     to_pydot(qt).write_png("qt-loc.png")
