@@ -1,10 +1,10 @@
 from typing import List, Union
 
 import networkx as nx
-import pydot
 from rich.pretty import pprint
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr
+from ddbms_chat.models.syscat import Table
 from ddbms_chat.models.tree import (
     JoinNode,
     ProjectionNode,
@@ -13,12 +13,25 @@ from ddbms_chat.models.tree import (
     UnionNode,
 )
 from ddbms_chat.phase2.parser import parse_select, parse_sql
+from ddbms_chat.phase2.syscat import read_syscat
+from ddbms_chat.phase2.utils import to_pydot
 from ddbms_chat.utils import debug_log, inspect_object
+
+(
+    syscat_allocation,
+    syscat_columns,
+    syscat_fragments,
+    syscat_sites,
+    syscat_tables,
+) = read_syscat()
 
 
 def _find_columns_used_by_condition(
     condition: Union[Condition, ConditionAnd, ConditionOr], tables: List[str]
 ) -> List[str]:
+    """
+    find all the columns a condition references
+    """
     if type(condition) is Condition:
         columns = []
 
@@ -41,12 +54,74 @@ def _find_columns_used_by_condition(
 
 
 def get_relation_head(qt: nx.DiGraph, node):
+    """
+    get the root node for a given relation
+
+    useful for adding nodes based on conditions
+    """
     in_edges = list(qt.in_edges(node))
 
     if len(in_edges) == 0:
         return node
 
     return get_relation_head(qt, in_edges[0][0])
+
+
+def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
+    for relation_node in nodes:
+        tables = syscat_tables.where(name=relation_node.name)
+
+        assert len(tables) == 1, f"Table {relation_node.name} not found"
+        table: Table = tables[0]
+
+        if table.fragment_type == "-":
+            continue
+
+        if table.fragment_type == "V":
+            fragments = syscat_fragments.where(table=table.id)
+
+            tmp_node = JoinNode(Condition("id", "=", "id"))
+
+            for fragment in fragments[:2]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
+
+                qt.add_edge(tmp_node, rel_node)
+
+            for fragment in fragments[2:]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
+
+                new_join_node = JoinNode(Condition("id", "=", "id"))
+                qt.add_edge(new_join_node, tmp_node)
+                qt.add_edge(new_join_node, rel_node)
+
+                tmp_node = new_join_node
+
+            for in_edge, _ in qt.in_edges(relation_node):
+                qt.add_edge(in_edge, tmp_node)
+            qt.remove_node(relation_node)
+
+        if table.fragment_type == "H" or table.fragment_type == "DH":
+            replacement_node = UnionNode()
+            for in_edge, _ in qt.in_edges(relation_node):
+                qt.add_edge(in_edge, replacement_node)
+            qt.remove_node(relation_node)
+
+            for fragment in syscat_fragments.where(table=table.id):
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
+                qt.add_edge(replacement_node, rel_node)
+
+    to_pydot(qt).write_png("qt-loc.png")
+
+    return qt
 
 
 def build_naive_query_tree(sql_query: str):
@@ -90,9 +165,11 @@ def build_naive_query_tree(sql_query: str):
             continue
 
         relation_list = list(
-            map(
-                lambda col: node_map["relations"].get(col.split(".")[0]),
-                columns_used,
+            set(
+                map(
+                    lambda col: node_map["relations"].get(col.split(".")[0]),
+                    columns_used,
+                )
             )
         )
         skip_update = False
@@ -121,22 +198,27 @@ def build_naive_query_tree(sql_query: str):
             condition = JoinNode(condition.condition)
 
             for relation in relation_list:
-                debug_log("Adding edge from %s to %s", condition, relation)
-                qt.add_edge(condition, get_relation_head(qt, relation))
+                edge_v = get_relation_head(qt, relation)
+                debug_log("[c1] Adding edge from %s to %s", condition, edge_v)
+                qt.add_edge(condition, edge_v)
         elif len(dst_nodes) == 1:
             for relation in relation_list:
-                qt.add_edge(condition, get_relation_head(qt, relation))
+                edge_v = get_relation_head(qt, relation)
+                debug_log("[c2] Adding edge from %s to %s", condition, edge_v)
+                qt.add_edge(condition, edge_v)
         else:
+            join = JoinNode()
+
             for relation in relation_list:
                 # skip self edge
                 if hash(condition) == hash(get_relation_head(qt, relation)):
                     continue
 
-                join = JoinNode()
-                debug_log("Adding edge from %s to %s", join, relation)
-                qt.add_edge(join, get_relation_head(qt, relation))
+                edge_v = get_relation_head(qt, relation)
+                debug_log("[c31] Adding edge from %s to %s", join, edge_v)
+                qt.add_edge(join, edge_v)
 
-                debug_log("Adding edge from %s to %s", join, relation)
+                debug_log("[c32] Adding edge from %s to %s", condition, join)
                 qt.add_edge(condition, join)
 
     # all conditions have been processed
@@ -151,6 +233,10 @@ def build_naive_query_tree(sql_query: str):
     qt.add_edge(project_node, get_relation_head(qt, relation_nodes[0]))
 
     nx.nx_pydot.to_pydot(qt).write_png("qt.png")
+
+    qt = localize_query_tree(qt, list(node_map["relations"].values()))
+
+    return qt
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from types import GeneratorType
 from typing import List
 
 import pymysql
+from pymysql.cursors import DictCursor
 
 from ddbms_chat.config import DB_NAME
 from ddbms_chat.models.syscat import Site
@@ -57,6 +58,7 @@ class DBConnection:
             "user": site.user,
             "password": site.password,
             "autocommit": True,
+            "cursorclass": DictCursor
         }
 
         if connect_db:

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from abc import ABC
 from typing import List, Optional, Union
+from uuid import uuid4
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr
 
 
 class TreeNode(ABC):
     def __init__(self):
-        # kept it in case some common init is needed
-        pass
+        # for unique hasing
+        self._uuid: int = uuid4().int
 
 
 class SelectionNode(TreeNode):
@@ -21,7 +22,7 @@ class SelectionNode(TreeNode):
         return f"<Select {self.condition}>"
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.condition))
+        return hash((self._uuid, self.__class__.__name__, self.condition))
 
 
 class ProjectionNode(TreeNode):
@@ -33,7 +34,7 @@ class ProjectionNode(TreeNode):
         return f"<Project {self.columns}>"
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, *self.columns))
+        return hash((self._uuid, self.__class__.__name__, *self.columns))
 
 
 class JoinNode(TreeNode):
@@ -45,7 +46,7 @@ class JoinNode(TreeNode):
         return f"<Join {self.condition if self.condition else '(X)'}>"
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.condition))
+        return hash((self._uuid, self.__class__.__name__, self.condition))
 
 
 class UnionNode(TreeNode):
@@ -56,7 +57,7 @@ class UnionNode(TreeNode):
         return "<Union>"
 
     def __hash__(self) -> int:
-        return super().__hash__()
+        return hash(self._uuid)
 
 
 class RelationNode(TreeNode):
@@ -64,9 +65,18 @@ class RelationNode(TreeNode):
         super().__init__()
         self.name = name
         self.is_localized: bool = False
+        self.site_id: int = -1
 
     def __str__(self) -> str:
-        return f"<{self.name}{' *' if not self.is_localized else ''}>"
+        return f"<{self.name}{' *' if not self.is_localized else ' @ site ' + str(self.site_id)}>"
 
     def __hash__(self) -> int:
-        return hash((self.__class__.__name__, self.name, self.is_localized))
+        return hash(
+            (
+                self._uuid,
+                self.__class__.__name__,
+                self.name,
+                self.is_localized,
+                self.site_id,
+            )
+        )

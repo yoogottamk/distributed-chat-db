@@ -14,7 +14,10 @@ from sqlparse.sql import (
 from sqlparse.tokens import Punctuation
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr, SelectQuery
+from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.utils import debug_log
+
+syscat_allocation, syscat_columns, syscat_fragments, syscat_sites, syscat_tables = read_syscat()
 
 
 def parse_sql(sql: str) -> Statement:
@@ -32,6 +35,27 @@ def parse_sql(sql: str) -> Statement:
     #     pass
 
     return parsed_query
+
+
+def _fill_table_from_syscat(column_names: List[str]) -> List[str]:
+    """
+    read columns from system catalog and prepend table to column name
+    """
+    resolved_column_names = []
+    for column_name in column_names:
+        if "." in column_name:
+            resolved_column_names.append(column_name.strip("`"))
+            continue
+
+        possible_cols = syscat_columns.where(name=column_name.strip("`"))
+        if len(possible_cols) != 1:
+            raise ValueError(f"Couldn't identify the relation for column {column_name}")
+
+        resolved_column_names.append(
+            syscat_tables.where(id=possible_cols[0].id)[0].name
+        )
+
+    return resolved_column_names
 
 
 def _resolve_column_alias(column_name: str, table_alias_map: Dict[str, str]):
@@ -297,7 +321,7 @@ def parse_select(sql: Statement) -> SelectQuery:
         having_clause = None
 
     return SelectQuery(
-        column_names,
+        _fill_table_from_syscat(column_names),
         table_names,
         _reduce_condition(
             ConditionAnd(
