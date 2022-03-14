@@ -1,10 +1,10 @@
 from typing import Union
+
 from ddbms_chat.config import DB_NAME
-from ddbms_chat.models.syscat import Column, Fragment, Site, Table
+from ddbms_chat.models.syscat import Fragment, Site, Table
 from ddbms_chat.syscat.allocation import ALLOCATION
 from ddbms_chat.syscat.columns import COLUMNS
 from ddbms_chat.syscat.fragments import FRAGMENTS
-from ddbms_chat.syscat.sites import SITES
 from ddbms_chat.syscat.tables import TABLES
 from ddbms_chat.utils import DBConnection, PyQL
 
@@ -94,3 +94,6 @@ def setup_tables():
         except Exception as e:
             print(sql)
             raise e
+
+def setup_tables_from_csv():
+    pass
