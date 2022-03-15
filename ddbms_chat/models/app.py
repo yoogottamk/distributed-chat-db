@@ -39,13 +39,13 @@ class Message:
 
 
 @dataclass
-class GroupMessage:
+class GroupMember:
     group: Group
-    message: Message
+    user: User
 
     def __eq__(self, o):
         return (
             (type(self) == type(o))
             and (self.group == o.group)
-            and (self.message == o.message)
+            and (self.user == o.message)
         )

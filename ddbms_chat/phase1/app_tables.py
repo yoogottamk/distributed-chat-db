@@ -94,6 +94,3 @@ def setup_tables():
         except Exception as e:
             print(sql)
             raise e
-
-def setup_tables_from_csv():
-    pass
