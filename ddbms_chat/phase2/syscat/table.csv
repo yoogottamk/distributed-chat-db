@@ -1,0 +1,5 @@
+id,name,fragment_type
+1,user,V
+2,group,H
+3,message,DH
+4,group_member,-

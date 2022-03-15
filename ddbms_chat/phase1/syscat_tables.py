@@ -19,8 +19,10 @@ def setup_tables(cursor: Cursor):
         cursor.execute(statement)
 
 
-def fill_tables(cursor: Cursor):
-    for items in [SITES, TABLES, FRAGMENTS, ALLOCATION, COLUMNS]:
+def fill_tables(
+    cursor: Cursor, table_list=[SITES, TABLES, FRAGMENTS, ALLOCATION, COLUMNS]
+):
+    for items in table_list:
         table_name = items[0].__class__.__name__
         print(f"    Creating {table_name}")
         for item in items:
@@ -32,7 +34,10 @@ def fill_tables(cursor: Cursor):
                 if type in ["int", "str", "datetime"]:
                     values.append(value)
                 else:
-                    values.append(value.id)
+                    try:
+                        values.append(value.id)
+                    except:
+                        values.append(value)
 
             cursor.execute(
                 f"insert into `{table_name.lower()}`({','.join(keys)}) values ({','.join(['%s'] * len(keys))})",

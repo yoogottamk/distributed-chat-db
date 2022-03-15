@@ -5,6 +5,7 @@ from ddbms_chat.models.syscat import Fragment, Site, Table
 from ddbms_chat.syscat.allocation import ALLOCATION
 from ddbms_chat.syscat.columns import COLUMNS
 from ddbms_chat.syscat.fragments import FRAGMENTS
+from ddbms_chat.syscat.sites import SITES
 from ddbms_chat.syscat.tables import TABLES
 from ddbms_chat.utils import DBConnection, PyQL
 
@@ -67,25 +68,44 @@ engine = InnoDB
 """
 
 
-def setup_tables():
+def setup_tables(
+    fragment_list: PyQL = FRAGMENTS,
+    table_list: PyQL = TABLES,
+    column_list: PyQL = COLUMNS,
+    allocation_list: PyQL = ALLOCATION,
+    site_list: PyQL = SITES,
+):
     fragment: Fragment
-    for fragment in FRAGMENTS:
+    for fragment in fragment_list:
         print(f"Creating fragment {fragment.name}")
-        table: Table = TABLES.where(id=fragment.table.id)[0]
-        columns = COLUMNS.where(table=table)
-        site: Site = ALLOCATION.where(fragment=fragment)[0].site
+        table: Table = table_list.where(
+            id=fragment.table if type(fragment.table) is int else fragment.table.id
+        )[0]
+
+        if type(column_list[0].table) is int:
+            columns = column_list.where(table=table.id)
+        else:
+            columns = column_list.where(table=table)
+
+        if type(allocation_list[0].fragment) is int:
+            site: Site = allocation_list.where(fragment=fragment.id)[0].site
+        else:
+            site: Site = allocation_list.where(fragment=fragment)[0].site
+
+        if type(site) is int:
+            site = site_list.where(id=site)[0]
 
         foreign_key_name = None
 
         if table.fragment_type == "V":
-            vsplit_cols = columns.where(name="id")
+            vsplit_cols = PyQL([])
             for col_name in fragment.logic.split(","):
                 vsplit_cols += columns.where(name=col_name)
 
             columns = vsplit_cols
 
         if table.fragment_type == "DH":
-            foreign_key_name = FRAGMENTS.where(id=fragment.parent)[0].name
+            foreign_key_name = fragment_list.where(id=fragment.parent)[0].name
 
         sql = create_table_sql(fragment.name, columns, foreign_key_name)
         try:

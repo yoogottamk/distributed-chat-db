@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from ddbms_chat.config import PROJECT_ROOT
 from ddbms_chat.models.syscat import Column, Fragment, Site, Table
+from ddbms_chat.phase1.app_tables import setup_tables
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.utils import DBConnection, debug_log
 
@@ -59,7 +60,7 @@ def make_model(table_name: str, columns: List[Column]):
     return make_dataclass(model_name, fields, namespace={"__eq__": eq_func})
 
 
-def create_app_tables():
+def read_app_rows_from_csv():
     table_names = [(table.name, table.id) for table in syscat_tables]
 
     rows = {table_name: [] for table_name, _ in table_names}
@@ -188,5 +189,6 @@ def fill_app_tables(table_rows):
 
 
 if __name__ == "__main__":
-    table_rows = create_app_tables()
+    table_rows = read_app_rows_from_csv()
+    setup_tables(syscat_fragments, syscat_tables, syscat_columns, syscat_allocation)
     fill_app_tables(table_rows)
