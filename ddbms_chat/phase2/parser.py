@@ -65,6 +65,24 @@ def _fill_table_from_syscat(column_names: List[str]) -> List[str]:
     return resolved_column_names
 
 
+def _find_relation_for_column(column_name: str, tables: List[str]):
+    candidate_tables = []
+    for table in tables:
+        s_table = syscat_tables.where(name=table)[0]
+        if len(syscat_columns.where(name=column_name, table=s_table.id)) == 1:
+            candidate_tables.append(table)
+
+    if len(candidate_tables) == 1:
+        return candidate_tables[0]
+
+    if len(candidate_tables) > 1:
+        raise ValueError(
+            f"Available tables {candidate_tables} for column {column_name}"
+        )
+
+    raise ValueError(f"No table found for column {column_name}")
+
+
 def _resolve_column_alias(column_name: str, table_alias_map: Dict[str, str]):
     """
     expand column alias name to their fullname
@@ -73,7 +91,8 @@ def _resolve_column_alias(column_name: str, table_alias_map: Dict[str, str]):
     p.b -> project.b
     """
     if "." not in column_name:
-        return column_name
+        column_name = column_name.strip("`")
+        return f"{_find_relation_for_column(column_name, list(table_alias_map.values()))}.{column_name}"
 
     table_alias, column_name = column_name.split(".", 2)
 
@@ -116,11 +135,18 @@ def _parse_comparison(token: Comparison, table_alias_map: Dict[str, str]) -> Con
     operation_token = list(
         filter(lambda x: x._get_repr_name() == "Comparison", token.tokens)
     )[0]
-    return Condition(
-        _resolve_column_alias(token.left.value, table_alias_map).strip("`"),
-        operation_token.value,
-        _resolve_column_alias(token.right.value, table_alias_map).strip("`"),
-    )
+
+    try:
+        lhs = _resolve_column_alias(token.left.value, table_alias_map).strip("`")
+    except:
+        lhs = token.left.value
+
+    try:
+        rhs = _resolve_column_alias(token.right.value, table_alias_map).strip("`")
+    except:
+        rhs = token.right.value
+
+    return Condition(lhs, operation_token.value, rhs)
 
 
 def _parse_condition_list(
@@ -255,12 +281,19 @@ def parse_select(sql: Statement) -> SelectQuery:
 
         # expecting column list
         if prev_keyword.value == "SELECT":
-            token: IdentifierList
-            assert token.is_group, "Invalid query?"
+            if token.value == "*":
+                columns = ["*"]
+            else:
+                token: IdentifierList
+                assert token.is_group, "Invalid query?"
 
-            columns += list(
-                map(lambda x: x.value.strip("`"), (token.get_identifiers()))
-            )
+                if type(token) is Identifier:
+                    columns = [token.value.strip("`")]
+                else:
+                    columns += list(
+                        map(lambda x: x.value.strip("`"), (token.get_identifiers()))
+                    )
+
             prev_keyword = None
             continue
 
@@ -268,7 +301,11 @@ def parse_select(sql: Statement) -> SelectQuery:
         if prev_keyword.value == "FROM":
             token: IdentifierList
 
-            tables += list(token.get_identifiers())
+            if type(token) is Identifier:
+                tables.append(token)
+            else:
+                tables += list(token.get_identifiers())
+
             prev_keyword = None
             continue
 
@@ -300,6 +337,14 @@ def parse_select(sql: Statement) -> SelectQuery:
                 limit = int(token.value)
             except:
                 raise ValueError("LIMIT should be an integer")
+
+    if columns == ["*"]:
+        for table in tables:
+            s_table = syscat_tables.where(name=table.value.strip("`"))[0]
+            columns = [
+                f"{s_table.name}.{c.name}"
+                for c in syscat_columns.where(table=s_table.id)
+            ]
 
     table_alias_map, table_names, column_names = _resolve_column_aliases(
         tables, columns
