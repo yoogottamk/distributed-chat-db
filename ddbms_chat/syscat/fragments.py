@@ -5,10 +5,18 @@ from ddbms_chat.utils import PyQL
 FRAGMENTS = PyQL(
     [
         Fragment(
-            id=1, name="user_1", logic="id,username,last_seen", parent=1, table=TABLES[0]
+            id=1,
+            name="user_1",
+            logic="id,username,last_seen",
+            parent=1,
+            table=TABLES[0]
         ),
-        Fragment(id=2, name="user_2", logic="id,name,status", parent=2, table=TABLES[0]),
-        Fragment(id=3, name="user_3", logic="id,phone,email", parent=3, table=TABLES[0]),
+        Fragment(
+            id=2, name="user_2", logic="id,name,status", parent=2, table=TABLES[0]
+        ),
+        Fragment(
+            id=3, name="user_3", logic="id,phone,email", parent=3, table=TABLES[0]
+        ),
         Fragment(id=4, name="group_1", logic="id%4==0", parent=4, table=TABLES[1]),
         Fragment(id=5, name="group_2", logic="id%4==1", parent=5, table=TABLES[1]),
         Fragment(id=6, name="group_3", logic="id%4==2", parent=6, table=TABLES[1]),
@@ -17,6 +25,6 @@ FRAGMENTS = PyQL(
         Fragment(id=9, name="message_2", logic="group|id", parent=5, table=TABLES[2]),
         Fragment(id=10, name="message_3", logic="group|id", parent=6, table=TABLES[2]),
         Fragment(id=11, name="message_4", logic="group|id", parent=7, table=TABLES[2]),
-        Fragment(id=12, name="group_members", logic="", parent=12, table=TABLES[3]),
+        Fragment(id=12, name="group_member", logic="", parent=12, table=TABLES[3]),
     ]
 )

@@ -10,4 +10,4 @@ id,name,logic,parent,table
 9,message_2,group|id,5,3
 10,message_3,group|id,6,3
 11,message_4,group|id,7,3
-12,group_members,,12,4
+12,group_member,,12,4

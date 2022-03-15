@@ -1,10 +1,11 @@
+import re
 from typing import Dict, List, Union
 
 import networkx as nx
 from rich.pretty import pprint
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr
-from ddbms_chat.models.syscat import Table
+from ddbms_chat.models.syscat import Fragment, Table
 from ddbms_chat.models.tree import (
     JoinNode,
     ProjectionNode,
@@ -212,24 +213,115 @@ def build_naive_query_tree(sql_query: str):
     return qt, node_map
 
 
-def optimize_query_tree(qt: nx.DiGraph, node_map: Dict):
-    columns_used_in_query = _find_columns_used_in_query(
-        qt, node_map["relations"].values()
-    )
+def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
+    relations = list(node_map["relations"].values())
+    columns_used_in_query = _find_columns_used_in_query(qt, relations)
 
-    for relation_node in node_map["relations"].values():
+    # get SelectionNodes directly attached to RelationNode
+    relation_attached_selects = {}
+    for relation_node in relations:
+        relation_attached_selects[relation_node.name] = []
+
+        parent_node = list(qt.in_edges(relation_node))[0][0]
+        if type(parent_node) is SelectionNode:
+            relation_attached_selects[relation_node.name].append(parent_node)
+
+    # localize query tree
+    qt = localize_query_tree(qt, relations)
+    to_pydot(qt).write_png("qt-loc.png")
+
+    relation_nodes = []
+
+    for node, out_degree in qt.out_degree():
+        if out_degree != 0:
+            continue
+        relation_nodes.append(node)
+
+    # optimization #1
+    # add ProjectionNode to select only columns present in query
+    for relation_node in relation_nodes:
         relation_node: RelationNode
-        relation_name = relation_node.name
 
-        simplified_project_node = ProjectionNode(
-            list(columns_used_in_query[relation_name])
-        )
+        fragment_name = relation_node.name
+        relation_name = re.sub(r"_\d+$", "", fragment_name)
+
+        table: Table = syscat_tables.where(name=relation_name)[0]
+        fragment: Fragment = syscat_fragments.where(table=table.id, name=fragment_name)[
+            0
+        ]
+
+        if table.fragment_type == "V":
+            fragment_cols = set(fragment.logic.split(","))
+            query_cols = columns_used_in_query[relation_name]
+
+            column_list = list(fragment_cols & query_cols)
+        else:
+            column_list = list(columns_used_in_query[relation_name])
+
+        # if its 1, it is just the primary key
+        if len(column_list) == 1:
+            qt.remove_node(relation_node)
+            continue
+
+        simplified_project_node = ProjectionNode(column_list)
         qt.add_node(simplified_project_node, shape="note")
 
         in_node = list(qt.in_edges(relation_node))[0][0]
         qt.remove_edge(in_node, relation_node)
         qt.add_edge(in_node, simplified_project_node)
         qt.add_edge(simplified_project_node, relation_node)
+
+    # recalculate relation_nodes; some of the fragments were removed
+    relation_nodes = []
+
+    for node, out_degree in qt.out_degree():
+        if out_degree != 0:
+            continue
+        if type(node) is RelationNode:
+            relation_nodes.append(node)
+        else:
+            qt.remove_node(node)
+
+    # optimization #2
+    # push selects directly to fragments
+    # TODO
+
+    # recalculate relation_nodes; some of the fragments were removed
+    relation_nodes = []
+
+    for node, out_degree in qt.out_degree():
+        if out_degree != 0:
+            continue
+        if type(node) is RelationNode:
+            relation_nodes.append(node)
+        else:
+            qt.remove_node(node)
+
+    # iteratively remove 0/single childed JoinNodes
+    while True:
+        nodes_to_be_removed = []
+        for node in qt:
+            if type(node) is JoinNode:
+                out_edges = list(qt.out_edges(node))
+                n_out_edges = len(out_edges)
+                if n_out_edges == 2:
+                    continue
+                elif n_out_edges == 0:
+                    # these should be cleared in the previous relation_nodes calculation
+                    qt.remove_node(node)
+                elif n_out_edges == 1:
+                    in_node = list(qt.in_edges(node))[0][0]
+                    out_node = out_edges[0][1]
+                    qt.add_edge(in_node, out_node)
+                    nodes_to_be_removed.append(node)
+                else:
+                    raise ValueError("Encountered JoinNode with >2 children")
+
+        if len(nodes_to_be_removed) == 0:
+            break
+
+        for node in nodes_to_be_removed:
+            qt.remove_node(node)
 
     return qt
 
@@ -300,8 +392,5 @@ if __name__ == "__main__":
     qt, node_map = build_naive_query_tree(test_query)
     to_pydot(qt).write_png("qt.png")
 
-    qt = optimize_query_tree(qt, node_map)
+    qt = optimize_and_localize_query_tree(qt, node_map)
     to_pydot(qt).write_png("qt-opt.png")
-
-    qt = localize_query_tree(qt, list(node_map["relations"].values()))
-    to_pydot(qt).write_png("qt-loc.png")
