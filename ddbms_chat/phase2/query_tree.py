@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Union
 
 import networkx as nx
 from rich.pretty import pprint
@@ -53,6 +53,37 @@ def _find_columns_used_by_condition(
     return list(set(columns))
 
 
+def _find_columns_used_in_query(qt: nx.DiGraph, nodes: List[RelationNode]):
+    """
+    optimization: from the lowest level, only select columns that are used in the query
+    """
+    columns_used = {}
+    table_names = [node.name for node in nodes]
+    for node in nodes:
+        columns_used[node.name] = set()
+        cur_node = node
+
+        while True:
+            incoming_edges = list(qt.in_edges(cur_node))
+            if len(incoming_edges) == 0:
+                break
+            cur_node = incoming_edges[0][0]
+
+            if type(cur_node) in [JoinNode, SelectionNode]:
+                if not cur_node.condition:
+                    continue
+                cols = _find_columns_used_by_condition(cur_node.condition, table_names)
+                for col in cols:
+                    if col.startswith(node.name + "."):
+                        columns_used[node.name].add(col.split(".")[1])
+            elif type(cur_node) is ProjectionNode:
+                for col in cur_node.columns:
+                    if col.startswith(node.name + "."):
+                        columns_used[node.name].add(col.split(".")[1])
+
+    return columns_used
+
+
 def get_relation_head(qt: nx.DiGraph, node):
     """
     get the root node for a given relation
@@ -65,62 +96,6 @@ def get_relation_head(qt: nx.DiGraph, node):
         return node
 
     return get_relation_head(qt, in_edges[0][0])
-
-
-def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
-    """
-    localize all relations
-    """
-    for relation_node in nodes:
-        tables = syscat_tables.where(name=relation_node.name)
-
-        assert len(tables) == 1, f"Table {relation_node.name} not found"
-        table: Table = tables[0]
-
-        if table.fragment_type == "-":
-            fragment = syscat_fragments.where(table=table.id)[0]
-            new_relation_root = RelationNode(relation_node.name)
-            new_relation_root.is_localized = True
-            new_relation_root.site_id = syscat_allocation.where(fragment=fragment.id)[
-                0
-            ].site
-            qt.add_node(new_relation_root, shape="rectangle", style="filled")
-        else:
-            get_node = (
-                lambda: JoinNode(Condition("id", "=", "id"))
-                if table.fragment_type == "V"
-                else UnionNode()
-            )
-
-            fragments = syscat_fragments.where(table=table.id)
-
-            new_relation_root = get_node()
-
-            for fragment in fragments[:2]:
-                rel_node = RelationNode(fragment.name)
-                rel_node.is_localized = True
-                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-                qt.add_node(rel_node, shape="rectangle", style="filled")
-
-                qt.add_edge(new_relation_root, rel_node)
-
-            for fragment in fragments[2:]:
-                rel_node = RelationNode(fragment.name)
-                rel_node.is_localized = True
-                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
-                qt.add_node(rel_node, shape="rectangle", style="filled")
-
-                new_join_node = get_node()
-                qt.add_edge(new_join_node, new_relation_root)
-                qt.add_edge(new_join_node, rel_node)
-
-                new_relation_root = new_join_node
-
-        for in_edge, _ in qt.in_edges(relation_node):
-            qt.add_edge(in_edge, new_relation_root)
-        qt.remove_node(relation_node)
-
-    return qt
 
 
 def build_naive_query_tree(sql_query: str):
@@ -237,6 +212,84 @@ def build_naive_query_tree(sql_query: str):
     return qt, node_map
 
 
+def optimize_query_tree(qt: nx.DiGraph, node_map: Dict):
+    columns_used_in_query = _find_columns_used_in_query(
+        qt, node_map["relations"].values()
+    )
+
+    for relation_node in node_map["relations"].values():
+        relation_node: RelationNode
+        relation_name = relation_node.name
+
+        simplified_project_node = ProjectionNode(
+            list(columns_used_in_query[relation_name])
+        )
+        qt.add_node(simplified_project_node, shape="note")
+
+        in_node = list(qt.in_edges(relation_node))[0][0]
+        qt.remove_edge(in_node, relation_node)
+        qt.add_edge(in_node, simplified_project_node)
+        qt.add_edge(simplified_project_node, relation_node)
+
+    return qt
+
+
+def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
+    """
+    localize all relations
+    """
+    for relation_node in nodes:
+        tables = syscat_tables.where(name=relation_node.name)
+
+        assert len(tables) == 1, f"Table {relation_node.name} not found"
+        table: Table = tables[0]
+
+        if table.fragment_type == "-":
+            fragment = syscat_fragments.where(table=table.id)[0]
+            new_relation_root = RelationNode(relation_node.name)
+            new_relation_root.is_localized = True
+            new_relation_root.site_id = syscat_allocation.where(fragment=fragment.id)[
+                0
+            ].site
+            qt.add_node(new_relation_root, shape="rectangle", style="filled")
+        else:
+            get_node = (
+                lambda f1, f2: JoinNode(Condition(f"{f1}.id", "=", f"{f2}.id"))
+                if table.fragment_type == "V"
+                else UnionNode()
+            )
+
+            fragments = syscat_fragments.where(table=table.id)
+
+            new_relation_root = get_node(fragments[0].name, fragments[1].name)
+
+            for fragment in fragments[:2]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
+
+                qt.add_edge(new_relation_root, rel_node)
+
+            for fragment in fragments[2:]:
+                rel_node = RelationNode(fragment.name)
+                rel_node.is_localized = True
+                rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
+                qt.add_node(rel_node, shape="rectangle", style="filled")
+
+                new_join_node = get_node("?", fragment.name)
+                qt.add_edge(new_join_node, new_relation_root)
+                qt.add_edge(new_join_node, rel_node)
+
+                new_relation_root = new_join_node
+
+        for in_edge, _ in qt.in_edges(relation_node):
+            qt.add_edge(in_edge, new_relation_root)
+        qt.remove_node(relation_node)
+
+    return qt
+
+
 if __name__ == "__main__":
     test_query = (
         "select G.`name`, M.`content` "
@@ -246,6 +299,9 @@ if __name__ == "__main__":
 
     qt, node_map = build_naive_query_tree(test_query)
     to_pydot(qt).write_png("qt.png")
+
+    qt = optimize_query_tree(qt, node_map)
+    to_pydot(qt).write_png("qt-opt.png")
 
     qt = localize_query_tree(qt, list(node_map["relations"].values()))
     to_pydot(qt).write_png("qt-loc.png")

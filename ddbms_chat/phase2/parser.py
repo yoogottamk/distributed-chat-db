@@ -17,7 +17,13 @@ from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr, Select
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.utils import debug_log
 
-syscat_allocation, syscat_columns, syscat_fragments, syscat_sites, syscat_tables = read_syscat()
+(
+    syscat_allocation,
+    syscat_columns,
+    syscat_fragments,
+    syscat_sites,
+    syscat_tables,
+) = read_syscat()
 
 
 def parse_sql(sql: str) -> Statement:
@@ -25,6 +31,7 @@ def parse_sql(sql: str) -> Statement:
         sqlparse.format(
             sql,
             keyword_case="upper",
+            identifier_case="lower",
             strip_comments=True,
             reindent_aligned=True,
         )
