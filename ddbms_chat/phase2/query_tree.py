@@ -383,22 +383,22 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
 
 
 if __name__ == "__main__":
-    test_query = (
-        "select G.`name`, M.`content` "
-        "from `group` G, `message` M, `group_member` GM, `user` U "
-        "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
-    )
-    test_query = (
-        "select G.`name` "
-        "from `group` G, `group_member` GM "
-        "where GM.`user` = 1 and G.`id` = GM.`group`"
-    )
-    test_query = "select * from `group` where `created_by` = 1"
+    # test_query = (
+    #     "select G.`name` "
+    #     "from `group` G, `group_member` GM "
+    #     "where GM.`user` = 1 and G.`id` = GM.`group`"
+    # )
+    # test_query = "select * from `group` where `created_by` = 1"
     test_query = (
         "select U.`name`, M.`sent_at`, M.`content` "
         "from `message` M, `user` U "
         "where M.`group` = 1 and M.`author` = U.id;"
     )
+    # test_query = (
+    #     "select G.`name`, M.`content` "
+    #     "from `group` G, `message` M, `group_member` GM, `user` U "
+    #     "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
+    # )
 
     qt, node_map = build_naive_query_tree(test_query)
     to_pydot(qt).write_png("qt.png")
