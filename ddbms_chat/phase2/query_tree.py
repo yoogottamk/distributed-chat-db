@@ -120,12 +120,13 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
             qt.add_edge(in_edge, new_relation_root)
         qt.remove_node(relation_node)
 
-    to_pydot(qt).write_png("qt-loc.png")
-
     return qt
 
 
 def build_naive_query_tree(sql_query: str):
+    """
+    builds the query tree given sql query
+    """
     parsed_query = parse_sql(sql_query)
     print(parsed_query)
     query = parse_select(parsed_query)
@@ -233,31 +234,18 @@ def build_naive_query_tree(sql_query: str):
     qt.add_node(project_node, shape="note")
     qt.add_edge(project_node, get_relation_head(qt, relation_nodes[0]))
 
-    nx.nx_pydot.to_pydot(qt).write_png("qt.png")
-
-    qt = localize_query_tree(qt, list(node_map["relations"].values()))
-
-    return qt
+    return qt, node_map
 
 
 if __name__ == "__main__":
-    # test_query = (
-    #     "SELECT P.Pnumber, P.Dnum, E.Lname, E.Address, E.Bdate "
-    #     "FROM PROJECT P, DEPARTMENT D, EMPLOYEE E "
-    #     "WHERE P.Dnum=D.Dnumber AND D.Mgr_ssn=E.Ssn AND P.Plocation = 'Stafford'"
-    # )
-    # test_query = (
-    #     "SELECT P.Pnumber, P.Dnum, E.Lname, E.Address, E.Bdate "
-    #     "FROM PROJECT P, EMPLOYEE E "
-    #     "INNER JOIN DEPARTMENT D ON P.Dnum = D.Dnumber "
-    #     "WHERE D.Mgr_ssn = E.Ssn AND D.mgr_ssn % 3 = 1 AND P.Plocation = 'Stafford' "
-    #     "GROUP BY P.Pnumber, P.Dnum "
-    #     "HAVING P.Pnumber > 5 OR P.Dnum < 3 "
-    #     "LIMIT 10"
-    # )
     test_query = (
         "select G.`name`, M.`content` "
         "from `group` G, `message` M, `group_member` GM, `user` U "
         "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
     )
-    build_naive_query_tree(test_query)
+
+    qt, node_map = build_naive_query_tree(test_query)
+    to_pydot(qt).write_png("qt.png")
+
+    qt = localize_query_tree(qt, list(node_map["relations"].values()))
+    to_pydot(qt).write_png("qt-loc.png")

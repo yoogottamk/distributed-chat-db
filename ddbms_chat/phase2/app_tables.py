@@ -190,5 +190,7 @@ def fill_app_tables(table_rows):
 
 if __name__ == "__main__":
     table_rows = read_app_rows_from_csv()
-    setup_tables(syscat_fragments, syscat_tables, syscat_columns, syscat_allocation)
+    setup_tables(
+        syscat_fragments, syscat_tables, syscat_columns, syscat_allocation, syscat_sites
+    )
     fill_app_tables(table_rows)

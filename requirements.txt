@@ -5,4 +5,5 @@ protobuf==3.19.4
 pycparser==2.21
 PyMySQL==1.0.2
 sqlvalidator==0.0.18
+z3-solver==4.8.14.0
 rich
