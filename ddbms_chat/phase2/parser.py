@@ -1,9 +1,10 @@
 from typing import Dict, List, Tuple, Union
 
 import sqlparse
-import sqlvalidator
+from rich.pretty import pprint
 from sqlparse.sql import (
     Comparison,
+    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -15,7 +16,7 @@ from sqlparse.tokens import Punctuation
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr, SelectQuery
 from ddbms_chat.phase2.syscat import read_syscat
-from ddbms_chat.utils import debug_log
+from ddbms_chat.utils import debug_log, inspect_object
 
 (
     syscat_allocation,
@@ -24,6 +25,26 @@ from ddbms_chat.utils import debug_log
     syscat_sites,
     syscat_tables,
 ) = read_syscat()
+
+
+def extract_names_from_func_col(func_col: str):
+    """
+    Extract function name and column name from string
+
+    Example:
+        "avg(col)" -> avg, col
+    """
+    if "(" not in func_col:
+        return None, func_col
+
+    return func_col.replace("(", "|").replace(")", "").split("|")[:2]
+
+
+def add_function_to_column(col_func, col_name):
+    """
+    add function to column name if function is defined
+    """
+    return f"{col_func}({col_name})" if col_func is not None else col_name
 
 
 def parse_sql(sql: str) -> Statement:
@@ -49,9 +70,20 @@ def _fill_table_from_syscat(column_names: List[str]) -> List[str]:
     read columns from system catalog and prepend table to column name
     """
     resolved_column_names = []
+
     for column_name in column_names:
+        column_func = None
+
+        if "(" in column_name:
+            column_func, column_name = extract_names_from_func_col(column_name)
+
         if "." in column_name:
-            resolved_column_names.append(column_name.strip("`"))
+            resolved_column_names.append(
+                add_function_to_column(
+                    column_func,
+                    ".".join([name.strip("`") for name in column_name.split(".")]),
+                )
+            )
             continue
 
         possible_cols = syscat_columns.where(name=column_name.strip("`"))
@@ -59,7 +91,9 @@ def _fill_table_from_syscat(column_names: List[str]) -> List[str]:
             raise ValueError(f"Couldn't identify the relation for column {column_name}")
 
         resolved_column_names.append(
-            syscat_tables.where(id=possible_cols[0].id)[0].name
+            add_function_to_column(
+                column_func, syscat_tables.where(id=possible_cols[0].id)[0].name
+            )
         )
 
     return resolved_column_names
@@ -90,13 +124,23 @@ def _resolve_column_alias(column_name: str, table_alias_map: Dict[str, str]):
     select p.b from project p;
     p.b -> project.b
     """
+    func_name = None
+
+    if "(" in column_name:
+        func_name, column_name = extract_names_from_func_col(column_name)
+
     if "." not in column_name:
         column_name = column_name.strip("`")
-        return f"{_find_relation_for_column(column_name, list(table_alias_map.values()))}.{column_name}"
+        return add_function_to_column(
+            func_name,
+            f"{_find_relation_for_column(column_name, list(table_alias_map.values()))}.{column_name}",
+        )
 
     table_alias, column_name = column_name.split(".", 2)
 
-    return f"{table_alias_map[table_alias]}.{column_name.strip('`')}"
+    return add_function_to_column(
+        func_name, f"{table_alias_map[table_alias]}.{column_name.strip('`')}"
+    )
 
 
 def _resolve_column_aliases(
@@ -287,11 +331,20 @@ def parse_select(sql: Statement) -> SelectQuery:
                 token: IdentifierList
                 assert token.is_group, "Invalid query?"
 
-                if type(token) is Identifier:
-                    columns = [token.value.strip("`")]
-                else:
-                    columns += list(
-                        map(lambda x: x.value.strip("`"), (token.get_identifiers()))
+                def __parse_select_tokens(token):
+                    if type(token) is Identifier:
+                        return token.value.strip("`")
+                    elif type(token) is Function:
+                        func_name = token.get_name()
+                        arg = list(token.get_parameters())[0].value.strip("`")
+                        return f"{func_name}({arg})"
+
+                    return None
+
+                columns = [__parse_select_tokens(token)]
+                if columns[0] is None:
+                    columns = list(
+                        map(__parse_select_tokens, (token.get_identifiers()))
                     )
 
             prev_keyword = None
