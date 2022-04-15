@@ -171,7 +171,7 @@ def fill_app_tables(table_rows):
 
                     parent_fragment = syscat_fragments.where(id=fragment.parent)[0]
                     parent_table = syscat_tables.where(id=parent_fragment.table)[0]
-                    parent_rows = PyQL(rows[parent_table.name])
+                    parent_rows = PyQL(table_rows[parent_table.name])
 
                     predicate = parent_fragment.logic
 
