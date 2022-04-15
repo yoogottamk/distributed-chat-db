@@ -4,7 +4,7 @@ import os
 import re
 from copy import deepcopy
 from types import GeneratorType
-from typing import List
+from typing import Dict, List
 
 import pymysql
 from pymysql.cursors import DictCursor
@@ -16,14 +16,18 @@ log = logging.getLogger("ddbms_chat")
 
 
 class PyQL:
-    def __init__(self, item_list: List):
+    def __init__(self, item_list: List, filter: Dict = {}):
         self.items = item_list
+        self.filter = filter
 
     def __len__(self):
         return len(self.items)
 
     def __getitem__(self, idx):
-        return self.items[idx]
+        try:
+            return self.items[idx]
+        except IndexError as e:
+            raise IndexError(f"Couldn't find item at index {idx} with conditions {self.filter}") from e
 
     def __add__(self, o):
         if len(self.items) == 0:
@@ -35,7 +39,7 @@ class PyQL:
         if type(self[0]) != type(o[0]):
             raise ValueError("Incompatible types")
 
-        return PyQL(self.items + o.items)
+        return PyQL(self.items + o.items, self.filter | o.filter)
 
     def where(self, **kwargs):
         current_list = deepcopy(self.items)
@@ -48,7 +52,7 @@ class PyQL:
             current_list = deepcopy(filtered_list)
             filtered_list = []
 
-        return PyQL(current_list)
+        return PyQL(current_list, kwargs)
 
 
 class DBConnection:
@@ -58,7 +62,7 @@ class DBConnection:
             "user": site.user,
             "password": site.password,
             "autocommit": True,
-            "cursorclass": DictCursor
+            "cursorclass": DictCursor,
         }
 
         if connect_db:

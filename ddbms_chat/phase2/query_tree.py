@@ -390,6 +390,9 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
 
             fragments = syscat_fragments.where(table=table.id)
 
+            # TODO: figure out relevant fragments and iterate on them
+            # instead of all fragments
+
             new_relation_root = get_node(
                 f"{fragments[0].name}.{pkey.name}", f"{fragments[1].name}.{pkey.name}"
             )
@@ -435,13 +438,11 @@ if __name__ == "__main__":
     #     "from `message` M, `user` U "
     #     "where M.`group` = 1 and M.`author` = U.id;"
     # )
-    # test_query = (
-    #     "select G.`name`, M.`content` "
-    #     "from `group` G, `message` M, `group_member` GM, `user` U "
-    #     "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
-    # )
-
-    test_query = "select cgpa from students, faculty, labs where students.facId=faculty.faculty_id and labs.lab_id=faculty.labId and labs.lab_location='KCIS'"
+    test_query = (
+        "select G.`name`, M.`content` "
+        "from `group` G, `message` M, `group_member` GM, `user` U "
+        "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
+    )
 
     parsed_query = parse_sql(test_query)
     print(parsed_query)
