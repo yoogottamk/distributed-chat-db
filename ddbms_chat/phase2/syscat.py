@@ -64,7 +64,7 @@ def read_syscat_rows_from_csv():
                     elif field_types[k][0].isupper():
                         cleaned_values[k] = int(row[k])
                     else:
-                        raise ValueError(f"Unknown type {field_types[k]} encountered")
+                        raise ValueError(f"Unknown type {field_types[k]} encountered in {table_name}")
 
                 rows[table_name].append(table_cls(**cleaned_values))
 

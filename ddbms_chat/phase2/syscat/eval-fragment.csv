@@ -1,0 +1,12 @@
+id,name,logic,parent,table
+1,labs_1,lab_location == "KCIS",1,1
+2,labs_2,lab_location == "VINDHYA",2,1
+3,labs_3,lab_location == "HIMALAYA",3,1
+4,labs_4,lab_location == "NILGIRI",4,1
+5,faculty_1,labId|lab_id,1,2
+6,faculty_2,labId|lab_id,2,2
+7,faculty_3,labId|lab_id,3,2
+8,faculty_4,labId|lab_id,4,2
+9,students_1,"rno,fname,lname",9,3
+10,students_2,"rno,cgpa,expense",10,3
+11,students_3,"rno,branch,facId",11,3

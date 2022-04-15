@@ -8,7 +8,7 @@ from ddbms_chat.config import PROJECT_ROOT
 from ddbms_chat.models.syscat import Column, Fragment, Site, Table
 from ddbms_chat.phase1.app_tables import setup_tables
 from ddbms_chat.phase2.syscat import read_syscat
-from ddbms_chat.utils import DBConnection, debug_log
+from ddbms_chat.utils import DBConnection, PyQL, debug_log
 
 CSV_ROOT = PROJECT_ROOT / "ddbms_chat/phase2/app_tables"
 
@@ -166,11 +166,28 @@ def fill_app_tables(table_rows):
 
                 for fragment in fragments:
                     fragment: Fragment
+                    parent_fragment: Fragment
+                    parent_table: Table
 
-                    predicate = syscat_fragments.where(id=fragment.parent)[0].logic
-                    predicate_globals = {}
+                    parent_fragment = syscat_fragments.where(id=fragment.parent)[0]
+                    parent_table = syscat_tables.where(id=parent_fragment.table)[0]
+                    parent_rows = PyQL(rows[parent_table.name])
+
+                    predicate = parent_fragment.logic
+
                     orig_key, mapped_key = fragment.logic.split("|", 1)[:2]
-                    predicate_globals[mapped_key] = column_values[orig_key]
+
+                    try:
+                        parent_row = parent_rows.where(
+                            **{mapped_key: column_values[orig_key]}
+                        )[0]
+                    except IndexError as e:
+                        raise ValueError(
+                            "Foreign key constraint broken, couldn't find row with "
+                            f"{mapped_key}={column_values[orig_key]} in {parent_table.name}"
+                        ) from e
+
+                    predicate_globals = asdict(parent_row)
 
                     if not eval(predicate, deepcopy(predicate_globals)):
                         continue

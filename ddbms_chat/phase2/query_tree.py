@@ -80,13 +80,13 @@ def _find_columns_used_in_query(qt: nx.DiGraph, nodes: List[RelationNode]):
                 cols = _find_columns_used_by_condition(cur_node.condition, table_names)
                 for col in cols:
                     if col.startswith(node.name + "."):
-                        columns_used[node.name].add(col.split(".")[1])
+                        columns_used[node.name].add(col.split(".")[1].lower())
             elif type(cur_node) is ProjectionNode:
                 for col in cur_node.columns:
                     if "(" in col:
                         _, col = extract_names_from_func_col(col)
                     if col.startswith(node.name + "."):
-                        columns_used[node.name].add(col.split(".")[1])
+                        columns_used[node.name].add(col.split(".")[1].lower())
 
     return columns_used
 
@@ -430,16 +430,18 @@ if __name__ == "__main__":
     #     "where GM.`user` = 1 and G.`id` = GM.`group`"
     # )
     # test_query = "select * from `group` where `created_by` = 1"
-    test_query = (
-        "select U.`name`, M.`sent_at`, M.`content` "
-        "from `message` M, `user` U "
-        "where M.`group` = 1 and M.`author` = U.id;"
-    )
+    # test_query = (
+    #     "select U.`name`, M.`sent_at`, M.`content` "
+    #     "from `message` M, `user` U "
+    #     "where M.`group` = 1 and M.`author` = U.id;"
+    # )
     # test_query = (
     #     "select G.`name`, M.`content` "
     #     "from `group` G, `message` M, `group_member` GM, `user` U "
     #     "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
     # )
+
+    test_query = "select cgpa from students, faculty, labs where students.facId=faculty.faculty_id and labs.lab_id=faculty.labId and labs.lab_location='KCIS'"
 
     parsed_query = parse_sql(test_query)
     print(parsed_query)
