@@ -12,6 +12,9 @@ class TreeNode(ABC):
         # for unique hasing
         self._uuid: int = uuid4().int
 
+    def __repr__(self):
+        return str(self)
+
 
 class SelectionNode(TreeNode):
     def __init__(self, condition: Union[Condition, ConditionAnd, ConditionOr]):
