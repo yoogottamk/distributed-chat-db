@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import inspect
 import logging
 import os
 import re
 from copy import deepcopy
 from types import GeneratorType
-from typing import Dict, List
+from typing import Dict, Generic, List, TypeVar
 
 import pymysql
 from pymysql.cursors import DictCursor
@@ -14,22 +16,26 @@ from ddbms_chat.models.syscat import Site
 
 log = logging.getLogger("ddbms_chat")
 
+T = TypeVar("T")
 
-class PyQL:
-    def __init__(self, item_list: List, filter: Dict = {}):
-        self.items = item_list
+
+class PyQL(Generic[T]):
+    def __init__(self, item_list: List[T], filter: Dict = {}):
+        self.items: List[T] = item_list
         self.filter = filter
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> T:
         try:
             return self.items[idx]
         except IndexError as e:
-            raise IndexError(f"Couldn't find item at index {idx} with conditions {self.filter}") from e
+            raise IndexError(
+                f"Couldn't find item at index {idx} with conditions {self.filter}"
+            ) from e
 
-    def __add__(self, o):
+    def __add__(self, o) -> PyQL[T]:
         if len(self.items) == 0:
             return o
 

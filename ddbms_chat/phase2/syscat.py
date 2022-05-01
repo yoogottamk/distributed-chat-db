@@ -12,7 +12,9 @@ from ddbms_chat.utils import DBConnection, PyQL, debug_log
 CSV_ROOT = PROJECT_ROOT / "ddbms_chat/phase2/syscat"
 
 
-def read_syscat(site: Optional[Site] = None) -> Tuple[PyQL, PyQL, PyQL, PyQL, PyQL]:
+def read_syscat(
+    site: Optional[Site] = None,
+) -> Tuple[PyQL[Allocation], PyQL[Column], PyQL[Fragment], PyQL[Site], PyQL[Table]]:
     if site is None:
         site = SITES[0]
 
@@ -64,7 +66,9 @@ def read_syscat_rows_from_csv():
                     elif field_types[k][0].isupper():
                         cleaned_values[k] = int(row[k])
                     else:
-                        raise ValueError(f"Unknown type {field_types[k]} encountered in {table_name}")
+                        raise ValueError(
+                            f"Unknown type {field_types[k]} encountered in {table_name}"
+                        )
 
                 rows[table_name].append(table_cls(**cleaned_values))
 
