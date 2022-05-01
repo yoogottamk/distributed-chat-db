@@ -2,7 +2,6 @@ import re
 from typing import Dict, List, Union
 
 import networkx as nx
-from rich.pretty import pprint
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr, SelectQuery
 from ddbms_chat.models.syscat import Column, Fragment, Table
@@ -20,7 +19,10 @@ from ddbms_chat.phase2.parser import (
 )
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.phase2.utils import to_pydot
-from ddbms_chat.utils import debug_log
+from ddbms_chat.utils import PyQL, debug_log
+
+# from z3 import And, Or, Solver, sat, simplify
+
 
 (
     syscat_allocation,
@@ -213,6 +215,50 @@ def build_naive_query_tree(sql_query: SelectQuery):
     return qt, node_map
 
 
+def construct_z3_from_condition(
+    condition: Union[Condition, ConditionAnd, ConditionOr], column_name: str
+):
+    if type(condition) is Condition:
+        if condition.lhs != column_name and condition.rhs != column_name:
+            return None
+
+
+def get_relevant_fragments_for_relation(
+    fragments: PyQL, fragment_type: str, columns_used_in_query: Dict
+) -> List:
+    relation_name = re.sub(r"_\d+$", "", fragments[0].name)
+    table: Table = syscat_tables.where(name=relation_name)[0]
+    pkey: Column = syscat_columns.where(table=table.id, pk=1)[0]
+
+    relevant_fragments = []
+
+    if fragment_type == "V":
+        for fragment in fragments:
+            fragment_cols = set(map(lambda x: x.lower(), fragment.logic.split(",")))
+            # vertical fragmentation will use primary key for joining
+            query_cols = columns_used_in_query[relation_name] | {pkey.name}
+
+            debug_log("Fragment cols: %s", fragment_cols)
+            debug_log("Query cols: %s", query_cols)
+
+            column_list = list(fragment_cols & query_cols)
+
+            debug_log("Final list: %s", column_list)
+
+            if len(column_list) > 1:
+                relevant_fragments.append(fragment)
+
+    if fragment_type == "H":
+        # TODO: make optimization
+        return fragments.items
+
+    if fragment_type == "DH":
+        # TODO: make optimization
+        return fragments.items
+
+    return relevant_fragments
+
+
 def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
     relations = list(node_map["relations"].values())
     columns_used_in_query = _find_columns_used_in_query(qt, relations)
@@ -227,7 +273,7 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
             relation_attached_selects[relation_node.name].append(parent_node)
 
     # localize query tree
-    qt = localize_query_tree(qt, relations)
+    qt = localize_query_tree(qt, relations, columns_used_in_query)
     to_pydot(qt).write_png("qt-loc.png")
 
     relation_nodes = []
@@ -317,7 +363,7 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
             0
         ]
 
-        relation_attached_selects
+        # relation_attached_selects
 
     # recalculate relation_nodes; some of the fragments were removed
     relation_nodes = []
@@ -361,7 +407,9 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
     return qt
 
 
-def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
+def localize_query_tree(
+    qt: nx.DiGraph, nodes: List[RelationNode], columns_used_in_query: Dict
+):
     """
     localize all relations
     """
@@ -390,14 +438,15 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
 
             fragments = syscat_fragments.where(table=table.id)
 
-            # TODO: figure out relevant fragments and iterate on them
-            # instead of all fragments
-
             new_relation_root = get_node(
                 f"{fragments[0].name}.{pkey.name}", f"{fragments[1].name}.{pkey.name}"
             )
 
-            for fragment in fragments[:2]:
+            relevant_fragments = get_relevant_fragments_for_relation(
+                fragments, table.fragment_type, columns_used_in_query
+            )
+
+            for fragment in relevant_fragments[:2]:
                 rel_node = RelationNode(fragment.name)
                 rel_node.is_localized = True
                 rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
@@ -405,7 +454,7 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
 
                 qt.add_edge(new_relation_root, rel_node)
 
-            for fragment in fragments[2:]:
+            for fragment in relevant_fragments[2:]:
                 rel_node = RelationNode(fragment.name)
                 rel_node.is_localized = True
                 rel_node.site_id = syscat_allocation.where(fragment=fragment.id)[0].site
@@ -422,6 +471,16 @@ def localize_query_tree(qt: nx.DiGraph, nodes: List[RelationNode]):
         for in_edge, _ in qt.in_edges(relation_node):
             qt.add_edge(in_edge, new_relation_root)
         qt.remove_node(relation_node)
+
+    return qt
+
+
+def build_query_tree(select_query: SelectQuery) -> nx.DiGraph:
+    qt, node_map = build_naive_query_tree(select_query)
+    to_pydot(qt).write_png("qt.png")
+
+    qt = optimize_and_localize_query_tree(qt, node_map)
+    to_pydot(qt).write_png("qt-opt.png")
 
     return qt
 
@@ -445,13 +504,6 @@ if __name__ == "__main__":
     )
 
     parsed_query = parse_sql(test_query)
-    print(parsed_query)
+    select_query = parse_select(parsed_query)
 
-    sql_query = parse_select(parsed_query)
-    pprint(sql_query)
-
-    qt, node_map = build_naive_query_tree(sql_query)
-    to_pydot(qt).write_png("qt.png")
-
-    qt = optimize_and_localize_query_tree(qt, node_map)
-    to_pydot(qt).write_png("qt-opt.png")
+    build_query_tree(select_query)
