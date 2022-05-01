@@ -1,7 +1,6 @@
 from typing import Dict, List, Tuple, Union
 
 import sqlparse
-from rich.pretty import pprint
 from sqlparse.sql import (
     Comparison,
     Function,
@@ -16,7 +15,7 @@ from sqlparse.tokens import Punctuation
 
 from ddbms_chat.models.query import Condition, ConditionAnd, ConditionOr, SelectQuery
 from ddbms_chat.phase2.syscat import read_syscat
-from ddbms_chat.utils import debug_log, inspect_object
+from ddbms_chat.utils import debug_log
 
 (
     syscat_allocation,
@@ -425,14 +424,24 @@ def parse_select(sql: Statement) -> SelectQuery:
     else:
         having_clause = None
 
+    reduced_condition = _reduce_condition(
+        ConditionAnd(
+            [_parse_condition_list(cond, table_alias_map) for cond in conditions]
+        )
+    )
+
+    if type(reduced_condition) is Condition or type(reduced_condition) is ConditionOr:
+        reduced_condition = ConditionAnd([reduced_condition])
+
+    assert type(reduced_condition) is ConditionAnd
+
+    if len(reduced_condition.conditions) == 0:
+        reduced_condition = None
+
     return SelectQuery(
         _fill_table_from_syscat(column_names),
         table_names,
-        _reduce_condition(
-            ConditionAnd(
-                [_parse_condition_list(cond, table_alias_map) for cond in conditions]
-            )
-        ),
+        reduced_condition,
         group_by,
         having_clause,
         limit,
