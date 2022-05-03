@@ -7,3 +7,8 @@ PyMySQL==1.0.2
 sqlvalidator==0.0.18
 z3-solver==4.8.14.0
 rich
+sqlparse
+networkx
+requests
+pydot
+flask

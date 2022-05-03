@@ -26,6 +26,7 @@ class Condition:
 @dataclass
 class ConditionOr:
     conditions: List[Union[Condition, ConditionOr, ConditionAnd]]
+    type: str = "or"
 
     def __hash__(self) -> int:
         return hash((self.__class__.__name__, *self.conditions))
@@ -37,6 +38,7 @@ class ConditionOr:
 @dataclass
 class ConditionAnd:
     conditions: List[Union[Condition, ConditionOr, ConditionAnd]]
+    type: str = "and"
 
     def __hash__(self) -> int:
         return hash(tuple(self.__class__.__name__, *self.conditions))

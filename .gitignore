@@ -155,3 +155,5 @@ cython_debug/
 
 # query tree viz
 qt*.png
+
+.history

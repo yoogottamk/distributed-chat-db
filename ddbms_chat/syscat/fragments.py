@@ -9,7 +9,7 @@ FRAGMENTS = PyQL(
             name="user_1",
             logic="id,username,last_seen",
             parent=1,
-            table=TABLES[0]
+            table=TABLES[0],
         ),
         Fragment(
             id=2, name="user_2", logic="id,name,status", parent=2, table=TABLES[0]
