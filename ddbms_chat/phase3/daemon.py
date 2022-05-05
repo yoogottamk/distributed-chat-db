@@ -94,6 +94,7 @@ def exec_query(action: str):
                 else:
                     processed_sql.append(line)
 
+            debug_log("\n".join(processed_sql))
             with DBConnection(CURRENT_SITE) as cursor:
                 cursor.execute("\n".join(processed_sql))
         case "union":
