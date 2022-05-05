@@ -45,7 +45,7 @@ def send_request_to_site(
         f"http://{site.ip}:12117{endpoint}",
         params=params,
         headers=req_headers,
-        payload=json,
+        json=json,
     )
     return r
 
