@@ -30,7 +30,7 @@ def send_request_to_site(
 
     site = sites[0]
 
-    r = requests.get(f"{site.ip}:12117/ping")
+    r = requests.get(f"http://{site.ip}:12117/ping")
     if not r.ok:
         raise ValueError(f"Site {site.name} is down")
 
@@ -42,7 +42,7 @@ def send_request_to_site(
     req_headers = (headers or {}) | {"Authorization": site.password}
 
     r = method_fn[method](
-        f"{site.ip}:12117{endpoint}",
+        f"http://{site.ip}:12117{endpoint}",
         params=params,
         headers=req_headers,
         payload=json,
