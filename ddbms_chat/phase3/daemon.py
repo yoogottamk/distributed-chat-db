@@ -98,7 +98,7 @@ def exec_query(action: str):
 
             debug_log("\n".join(processed_sql))
             with DBConnection(CURRENT_SITE) as cursor:
-                cursor.execute("\n".join(processed_sql))
+                cursor.execute(" ".join(processed_sql))
         case "union":
             relation1_name, relation2_name, target_relation_name = (
                 payload["relation1_name"],
