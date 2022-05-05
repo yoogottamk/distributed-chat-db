@@ -268,7 +268,7 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
     for relation_node in relations:
         relation_attached_selects[relation_node.name] = []
 
-        parent_node = list(qt.in_edges(relation_node))[0][0]
+        parent_node = list(qt.predecessors(relation_node))[0]
         if type(parent_node) is SelectionNode:
             relation_attached_selects[relation_node.name].append(parent_node)
 

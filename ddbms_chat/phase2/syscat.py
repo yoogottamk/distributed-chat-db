@@ -3,18 +3,42 @@ from dataclasses import fields
 from datetime import datetime
 from typing import Optional, Tuple
 
-from ddbms_chat.config import PROJECT_ROOT
+from ddbms_chat.config import PROJECT_ROOT, RUN_OFFLINE
 from ddbms_chat.models.syscat import Allocation, Column, Fragment, Site, Table
 from ddbms_chat.phase1 import db, syscat_tables
+from ddbms_chat.syscat.allocation import ALLOCATION
+from ddbms_chat.syscat.columns import COLUMNS
+from ddbms_chat.syscat.fragments import FRAGMENTS
 from ddbms_chat.syscat.sites import SITES
+from ddbms_chat.syscat.tables import TABLES
 from ddbms_chat.utils import DBConnection, PyQL, debug_log
 
 CSV_ROOT = PROJECT_ROOT / "ddbms_chat/phase2/syscat"
 
 
+def convert_objects_to_ids(obj):
+    for f in fields(obj):
+        if f.type[0].isupper():
+            try:
+                setattr(obj, f.name, getattr(obj, f.name).id)
+            except:
+                pass
+    return obj
+
+
 def read_syscat(
     site: Optional[Site] = None,
 ) -> Tuple[PyQL[Allocation], PyQL[Column], PyQL[Fragment], PyQL[Site], PyQL[Table]]:
+    if RUN_OFFLINE:
+        debug_log("Running in offline mode")
+        return (
+            PyQL([convert_objects_to_ids(x) for x in ALLOCATION]),
+            PyQL([convert_objects_to_ids(x) for x in COLUMNS]),
+            PyQL([convert_objects_to_ids(x) for x in FRAGMENTS]),
+            PyQL([convert_objects_to_ids(x) for x in SITES]),
+            PyQL([convert_objects_to_ids(x) for x in TABLES]),
+        )
+
     if site is None:
         site = SITES[0]
 

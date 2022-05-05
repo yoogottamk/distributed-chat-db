@@ -34,7 +34,7 @@ else:
 def authenticate_request(f):
     @wraps(f)
     def _authenticate_request(*args, **kwargs):
-        if DEBUG:
+        if DEBUG or request.remote_addr == "127.0.0.1":
             return f(*args, **kwargs)
 
         auth_header = request.headers.get("Authorization")
@@ -44,6 +44,10 @@ def authenticate_request(f):
         return f(*args, **kwargs)
 
     return _authenticate_request
+
+
+RUNNING_READ_QUERY = False
+RUNNING_WRITE_QUERY = False
 
 
 @app.get("/ping")
@@ -93,7 +97,8 @@ def exec_query(action: str):
             create_syscat_rows(CURRENT_SITE, relation1_name, target_relation_name)
             with DBConnection(CURRENT_SITE) as cursor:
                 cursor.execute(
-                    f"create table {target_relation_name} as select * from {relation1_name} union select * from {relation2_name}"
+                    f"create table {target_relation_name} as "
+                    f"select * from {relation1_name} union select * from {relation2_name}"
                 )
         case "join":
             relation1_name, relation2_name, join_condition, target_relation_name = (
@@ -107,7 +112,9 @@ def exec_query(action: str):
                 create_syscat_rows(CURRENT_SITE, "", target_relation_name, [])
                 join_condition = condition_dict_to_object(join_condition)
                 cursor.execute(
-                    f"create table {target_relation_name} as select * from {relation1_name}, {relation2_name} where {construct_select_condition_string(join_condition)}"
+                    f"create table {target_relation_name} as "
+                    f"select * from {relation1_name}, {relation2_name} "
+                    f"where {construct_select_condition_string(join_condition)}"
                 )
         case "select":
             relation_name, select_condition, target_relation_name = (
@@ -121,7 +128,9 @@ def exec_query(action: str):
             create_syscat_rows(CURRENT_SITE, relation_name, target_relation_name)
             with DBConnection(CURRENT_SITE) as cursor:
                 cursor.execute(
-                    f"create table {target_relation_name} as select * from {relation_name} where {construct_select_condition_string(select_condition)}"
+                    f"create table {target_relation_name} as "
+                    f"select * from {relation_name} "
+                    f"where {construct_select_condition_string(select_condition)}"
                 )
         case "project":
             relation_name, project_columns, target_relation_name = (
@@ -135,8 +144,12 @@ def exec_query(action: str):
             )
             with DBConnection(CURRENT_SITE) as cursor:
                 cursor.execute(
-                    f"create table {target_relation_name} as select {','.join(reduced_columns)} from {relation_name}"
+                    f"create table {target_relation_name} as "
+                    f"select {','.join(reduced_columns)} from {relation_name}"
                 )
+        case "rename":
+            # TODO: implement rename
+            ...
         case unk_action:
             abort(HTTPStatus.BAD_REQUEST, description=f"Unknown action {unk_action}")
 
