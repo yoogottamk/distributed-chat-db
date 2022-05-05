@@ -96,9 +96,11 @@ def exec_query(action: str):
                 else:
                     processed_sql.append(line)
 
-            debug_log(" ".join(processed_sql))
+            sql = "\n".join(processed_sql)
             with DBConnection(CURRENT_SITE) as cursor:
-                cursor.execute(" ".join(processed_sql))
+                for query in sql.split(";"):
+                    debug_log(query.strip())
+                    cursor.execute(query.strip())
         case "union":
             relation1_name, relation2_name, target_relation_name = (
                 payload["relation1_name"],
