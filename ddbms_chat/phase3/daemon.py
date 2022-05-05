@@ -91,6 +91,8 @@ def exec_query(action: str):
                         f"INSERT INTO `{target_relation_name}` "
                         + line.split("`", 2)[-1]
                     )
+                elif line.startswith(") ENGINE=InnoDB"):
+                    processed_sql.append(") ENGINE=InnoDB;")
                 else:
                     processed_sql.append(line)
 
