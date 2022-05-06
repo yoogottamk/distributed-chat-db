@@ -165,6 +165,8 @@ def construct_select_condition_string(
     rel1_cols: List[str] = [],
     rel2_cols: List[str] = [],
 ):
+    if condition is None:
+        return "1=1"
 
     if type(condition) is Condition:
         lhs_col = _process_column_name(condition.lhs)
