@@ -149,7 +149,7 @@ def exec_query(action: str):
 
                 quoted_cols = []
                 for x in rel_cols:
-                    if not x.startswith("`"):
+                    if not x.startswith("`") and "(" not in x:
                         quoted_cols.append(f"`{x}`")
                     else:
                         quoted_cols.append(x)
@@ -186,7 +186,7 @@ def exec_query(action: str):
             reduced_columns = [_process_column_name(col) for col in project_columns]
             quoted_cols = []
             for x in reduced_columns:
-                if not x.startswith("`"):
+                if not x.startswith("`") and "(" not in x:
                     quoted_cols.append(f"`{x}`")
                 else:
                     quoted_cols.append(x)
