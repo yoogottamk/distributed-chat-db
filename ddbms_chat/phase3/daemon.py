@@ -281,8 +281,8 @@ def tx_2pc_prepare():
     txid = payload["txid"]
 
     split_sql = sql.strip().split()
-    relation_name = split_sql[1]
-    sql = " ".join([split_sql[0], f"{txid}_{relation_name}", *split_sql[2:]])
+    relation_name = split_sql[1].strip("`")
+    sql = " ".join([split_sql[0], f"`{txid}_{relation_name}`", *split_sql[2:]])
 
     try:
         with DBConnection(CURRENT_SITE) as cursor:

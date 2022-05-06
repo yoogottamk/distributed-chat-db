@@ -8,7 +8,7 @@ tx_log_file = open("tx-coordinator.log", "w+")
 
 def tx_2pc(update_sql: str, query_id: str):
     split_sql = update_sql.strip().split()
-    relation_name = split_sql[1]
+    relation_name = split_sql[1].split("`")
     table_id = syscat_table.where(name=relation_name)[0].id
     fragments = syscat_fragment.where(table=table_id)
 
@@ -16,7 +16,7 @@ def tx_2pc(update_sql: str, query_id: str):
 
     responses = []
     for frag in fragments:
-        sql = " ".join([split_sql[0], frag.name, *split_sql[2:]])
+        sql = " ".join([split_sql[0], f"`{frag.name}`", *split_sql[2:]])
         site = syscat_allocation.where(fragment=frag.id)[0].site
 
         try:
