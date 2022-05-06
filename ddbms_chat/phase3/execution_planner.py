@@ -103,7 +103,7 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
                         "join",
                         (
                             actionable_nodes[0].name,
-                            actionable_nodes[1].name,
+                            old_node_name,
                             parent.condition,
                         ),
                         node_name,
