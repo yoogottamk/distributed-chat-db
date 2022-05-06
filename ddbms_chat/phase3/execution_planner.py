@@ -131,7 +131,7 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
                     (
                         actionable_nodes[0].site_id,
                         "select",
-                        (actionable_nodes[0], parent.condition),
+                        (actionable_nodes[0].name, parent.condition),
                         node_name,
                     )
                 )
