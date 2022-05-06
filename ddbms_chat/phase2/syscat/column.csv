@@ -7,10 +7,10 @@ id,name,table,type,pk,notnull,unique
 6,status,1,str,0,1,0
 7,last_seen,1,datetime,0,1,0
 8,id,2,int,1,1,1
-9,name,2,str,0,1,0
+9,gname,2,str,0,1,0
 10,created_by,2,User,0,1,0
 11,id,3,int,1,1,1
-12,group,3,Group,0,1,0
+12,mgroup,3,Group,0,1,0
 13,author,3,User,0,1,0
 14,content,3,str,0,1,0
 15,sent_at,3,datetime,0,1,0

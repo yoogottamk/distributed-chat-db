@@ -2,7 +2,6 @@ from ddbms_chat.models.syscat import Column
 from ddbms_chat.syscat.tables import TABLES
 from ddbms_chat.utils import PyQL
 
-
 # user table columns
 
 COLUMNS = PyQL(
@@ -83,7 +82,7 @@ COLUMNS = PyQL(
         ),
         Column(
             id=9,
-            name="name",
+            name="gname",
             table=TABLES[1],
             type="str",
             pk=0,
@@ -112,7 +111,7 @@ COLUMNS = PyQL(
         ),
         Column(
             id=12,
-            name="group",
+            name="mgroup",
             table=TABLES[2],
             type="Group",
             pk=0,
