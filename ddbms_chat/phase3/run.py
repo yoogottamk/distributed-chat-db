@@ -33,6 +33,7 @@ while True:
         qid = f"q{token_hex(3)}s{CURRENT_SITE.id}"
         query_str = input("Enter query: ")
         cmd = query_str.strip().lower().split()[0]
+
         if cmd == "select":
             parsed_query = parse_sql(query_str)
             select_query = parse_select(parsed_query)
@@ -51,7 +52,7 @@ while True:
                 console = Console()
                 console.print(table)
         elif cmd == "update":
-            tx_2pc(query_str)
+            tx_2pc(query_str, qid)
     except EOFError:
         break
     except Exception as e:
