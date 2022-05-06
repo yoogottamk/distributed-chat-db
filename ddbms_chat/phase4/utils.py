@@ -13,6 +13,8 @@ def tx_2pc(update_sql: str, query_id: str):
     table_id = syscat_table.where(name=relation_name)[0].id
     fragments = syscat_fragment.where(table=table_id)
 
+    debug_log("Found %s fragments: %s", len(fragments), fragments.items)
+
     tx_log_file.write(f"{query_id}: begin_commit\n")
 
     responses = []
