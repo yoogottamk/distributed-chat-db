@@ -1,5 +1,6 @@
 import atexit
 import readline
+from secrets import token_hex
 
 from rich.pretty import pprint
 
@@ -12,15 +13,12 @@ from ddbms_chat.phase3.execution_planner import execute_plan, plan_execution
 history_file = PROJECT_ROOT / ".history"
 history_file.touch()
 
-newline = "\n"
-qid = f"q{history_file.read_text().count(newline)}"
 
 _, _, _, syscat_sites, _ = read_syscat()
 sites = syscat_sites.where(name=HOSTNAME)
 
 if len(sites) > 0:
     CURRENT_SITE = sites[0]
-    qid += f"s{CURRENT_SITE.id}"
 else:
     raise ValueError("Running on a node not in system catalog")
 
@@ -28,6 +26,7 @@ readline.read_history_file(history_file)
 
 while True:
     try:
+        qid = f"q{token_hex(3)}s{CURRENT_SITE.id}"
         query_str = input("Enter select query: ")
         parsed_query = parse_sql(query_str)
         select_query = parse_select(parsed_query)
