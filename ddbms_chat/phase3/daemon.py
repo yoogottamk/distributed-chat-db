@@ -123,10 +123,18 @@ def exec_query(action: str):
                 payload["target_relation_name"],
             )
             with DBConnection(CURRENT_SITE) as cursor:
+                cursor.execute(
+                    f"select column_name from information_schema.columns where table_name = '{relation1_name}'"
+                )
+                rel_cols = {list(x.values())[0] for x in cursor.fetchall()}
+                cursor.execute(
+                    f"select column_name from information_schema.columns where table_name = '{relation2_name}'"
+                )
+                rel_cols |= {list(x.values())[0] for x in cursor.fetchall()}
                 join_condition = condition_dict_to_object(join_condition)
                 query = (
                     f"create table `{target_relation_name}` as "
-                    f"select * from `{relation1_name}` join `{relation2_name}` "
+                    f"select {','.join(rel_cols)} from `{relation1_name}` join `{relation2_name}` "
                     f"on {construct_select_condition_string(join_condition, relation1_name, relation2_name)}"
                 )
                 debug_log(query)
