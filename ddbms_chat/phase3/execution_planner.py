@@ -210,7 +210,7 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
         raise ValueError("Failed to retrieve results")
 
     with DBConnection(current_site) as cursor:
-        cursor.execute(f"select * from {query_id}-result")
+        cursor.execute(f"select * from `{query_id}-result`")
         rows = cursor.fetchall()
         print(rows)
 
