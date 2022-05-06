@@ -189,7 +189,7 @@ def exec_query(action: str):
                 gb_cols = [_process_column_name(col) for col in payload["group_by"]]
                 group_by_str = f" group by {','.join(gb_cols)}"
                 if "having" in payload:
-                    group_by_str += f" having {construct_select_condition_string(payload['having'])}"
+                    group_by_str += f" having {construct_select_condition_string(condition_dict_to_object(payload['having']))}"
 
             reduced_columns = [_process_column_name(col) for col in project_columns]
             quoted_cols = []
