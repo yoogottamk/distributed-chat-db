@@ -1,5 +1,6 @@
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.phase3.utils import send_request_to_site
+from ddbms_chat.utils import debug_log
 
 syscat_allocation, _, syscat_fragment, _, syscat_table = read_syscat()
 
@@ -24,7 +25,9 @@ def tx_2pc(update_sql: str, query_id: str):
                 site.id, "post", "/2pc/prepare", json={"sql": sql, "txid": query_id}
             )
             if not r.ok:
+                debug_log("Failed in prepare\n%s", (r.reason,))
                 raise ValueError("Request failed")
+            debug_log("Got response %s", (r.text,))
             responses.append(r.text)
         except:
             tx_log_file.write(f"{query_id}: abort\n")
@@ -35,17 +38,21 @@ def tx_2pc(update_sql: str, query_id: str):
         site = syscat_allocation.where(fragment=frag.id)[0].site
 
         if not all(x == "vote-commit" for x in responses):
+            debug_log("Global abort, not all did vote-commit")
             try:
                 r = send_request_to_site(
                     site.id, "post", "/2pc/global-abort", json={"txid": query_id}
                 )
                 if not r.ok:
+                    debug_log("global-abort failed\n%s", (r.reason,))
                     raise ValueError("Request failed")
             except:
+                debug_log("aborted")
                 tx_log_file.write(f"{query_id}: abort\n")
                 tx_log_file.write(f"{query_id}: end_of_transaction\n")
                 return
         else:
+            debug_log("Global commit")
             try:
                 r = send_request_to_site(
                     site.id, "post", "/2pc/global-commit", json={"txid": query_id}
