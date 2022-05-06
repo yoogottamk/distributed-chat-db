@@ -269,16 +269,19 @@ def cleanup(query_id: str):
 def tx_2pc_prepare():
     global RUNNING_READ_QUERY, RUNNING_WRITE_QUERY
 
-    # in the middle of another query
-    if RUNNING_READ_QUERY or RUNNING_WRITE_QUERY:
-        return "vote-abort"
-
-    RUNNING_WRITE_QUERY = True
-
     payload = request.json
 
     sql = payload["sql"]
     txid = payload["txid"]
+
+    # in the middle of another query
+    if RUNNING_READ_QUERY or RUNNING_WRITE_QUERY:
+        tx_log_file.write(
+            f"{txid}: abort: cant write; in the middle of another query\n"
+        )
+        return "vote-abort"
+
+    RUNNING_WRITE_QUERY = True
 
     split_sql = sql.strip().split()
     relation_name = split_sql[1].strip("`")
@@ -293,8 +296,10 @@ def tx_2pc_prepare():
             cursor.execute(sql)
     except Exception as e:
         print(e)
+        tx_log_file.write(f"{txid}: abort: error\n")
         return "vote-abort"
 
+    tx_log_file.write(f"{txid}: vote-commit\n")
     return "vote-commit"
 
 
@@ -330,6 +335,7 @@ def tx_2pc_global_commit():
                 )
                 break
 
+    tx_log_file.write(f"{txid}: commit\n")
     return {"success": True}
 
 
@@ -357,6 +363,7 @@ def tx_2pc_global_abort():
                 cursor.execute(f"drop table `{relation}`")
                 break
 
+    tx_log_file.write(f"{txid}: abort\n")
     return {"success": True}
 
 
