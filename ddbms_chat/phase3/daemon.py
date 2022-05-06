@@ -186,9 +186,9 @@ def exec_query(action: str):
 
             group_by_str = ""
             if "group_by" in payload:
-                group_by_str = f" group by {','.join(payload['group_by'])} "
+                group_by_str = f" group by {','.join(payload['group_by'])}"
                 if "having" in payload:
-                    group_by_str += construct_select_condition_string(payload["having"])
+                    group_by_str += f" having {construct_select_condition_string(payload['having'])}"
 
             reduced_columns = [_process_column_name(col) for col in project_columns]
             quoted_cols = []
