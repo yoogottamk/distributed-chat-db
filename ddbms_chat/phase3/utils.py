@@ -128,8 +128,8 @@ def _process_column_name(col_name: str):
 
 def construct_select_condition_string(
     condition: Union[Condition, ConditionOr, ConditionAnd],
-    rel1_name: str,
-    rel2_name: str,
+    rel1_name: str = "",
+    rel2_name: str = "",
 ):
 
     if type(condition) is Condition:
