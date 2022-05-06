@@ -1,6 +1,7 @@
 import atexit
 import readline
 from secrets import token_hex
+from traceback import print_exc
 
 from rich.pretty import pprint
 
@@ -38,6 +39,6 @@ while True:
     except EOFError:
         break
     except Exception as e:
-        print(e)
+        print_exc()
 
 atexit.register(readline.write_history_file, history_file)
