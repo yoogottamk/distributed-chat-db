@@ -169,6 +169,7 @@ def exec_query(action: str):
                     f"select * from `{relation_name}` "
                     f"where {construct_select_condition_string(select_condition)}"
                 )
+                debug_log(query)
                 cursor.execute(query)
         case "project":
             relation_name, project_columns, target_relation_name = (
@@ -182,6 +183,7 @@ def exec_query(action: str):
                     f"create table `{target_relation_name}` as "
                     f"select {','.join(reduced_columns)} from `{relation_name}`"
                 )
+                debug_log(query)
                 cursor.execute(query)
         case "rename":
             old_name, new_name = payload["old_name"], payload["new_name"]
