@@ -71,6 +71,8 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
                         old_node_name,
                     )
                 )
+            else:
+                old_node_name = actionable_nodes[1].name
 
             component_rels = get_component_relations(actionable_nodes[1].name)
             node_name = build_relation_name(query_id, len(plan), component_rels)
