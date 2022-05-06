@@ -119,6 +119,10 @@ def condition_dict_to_object(
 
 
 def _process_column_name(col_name: str):
+    # probably just a value since my code always converts it to a.b
+    if "." not in col_name:
+        return col_name
+
     if "(" not in col_name:
         return f"`{col_name.split('.')[-1]}`"
 
