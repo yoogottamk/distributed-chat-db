@@ -214,6 +214,8 @@ def cleanup(query_id: str):
             if relation.startswith(query_id):
                 cursor.execute(f"drop table `{relation}`")
 
+    return {"success": True}
+
 
 @authenticate_request
 @app.post("/2pc/prepare")
