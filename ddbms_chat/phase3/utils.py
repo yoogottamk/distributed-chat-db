@@ -47,7 +47,7 @@ def send_request_to_site(
         name = "local_node"
         password = ""
 
-    r = requests.get(f"http://{ip}:12117/ping")
+    r = requests.get(f"http://{ip}:12117/ping", timeout=5)
     if not r.ok:
         raise ValueError(f"Site {name} is down")
 

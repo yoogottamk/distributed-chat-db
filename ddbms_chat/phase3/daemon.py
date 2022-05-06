@@ -6,13 +6,11 @@ from typing import List
 from flask import Flask, abort, request
 
 from ddbms_chat.config import DB_NAME, HOSTNAME
-from ddbms_chat.models.query import ConditionAnd
 from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.phase3.utils import (
     _process_column_name,
     condition_dict_to_object,
     construct_select_condition_string,
-    get_component_relations,
     send_request_to_site,
 )
 from ddbms_chat.utils import DBConnection, debug_log
@@ -47,6 +45,8 @@ def authenticate_request(f):
 
 RUNNING_READ_QUERY = False
 RUNNING_WRITE_QUERY = False
+
+tx_log_file = open("tx-participant.log", "w+")
 
 
 @app.get("/ping")
@@ -275,7 +275,24 @@ def tx_2pc_prepare():
 
     RUNNING_WRITE_QUERY = True
 
-    # TODO: create tmp table for tx
+    payload = request.json
+
+    sql = payload["sql"]
+    txid = payload["txid"]
+
+    split_sql = sql.strip().split()
+    relation_name = split_sql[1]
+    sql = " ".join([split_sql[0], f"{txid}_{relation_name}", *split_sql[2:]])
+
+    try:
+        with DBConnection(CURRENT_SITE) as cursor:
+            cursor.execute(
+                f"create table `{txid}_{relation_name}` as select * `{relation_name}`"
+            )
+            cursor.execute(sql)
+    except:
+        return "vote-abort"
+
     return "vote-commit"
 
 
@@ -285,7 +302,27 @@ def tx_2pc_global_commit():
     global RUNNING_READ_QUERY, RUNNING_WRITE_QUERY
     RUNNING_WRITE_QUERY = False
 
-    # TODO: commit tmp table
+    payload = request.json
+
+    txid = payload["txid"]
+
+    with DBConnection(CURRENT_SITE) as cursor:
+        cursor.execute(
+            "select table_name from information_schema.tables where table_schema = %s",
+            (DB_NAME,),
+        )
+        existing_relations: List[str] = [
+            list(row.values())[0] for row in cursor.fetchall()
+        ]
+
+        for relation in existing_relations:
+            if relation.startswith(txid):
+                cursor.execute(
+                    f"rename table `{relation}` to `{relation.split('_', 1)[1]}`"
+                )
+                break
+
+    return {"success": True}
 
 
 @authenticate_request
@@ -294,7 +331,25 @@ def tx_2pc_global_abort():
     global RUNNING_READ_QUERY, RUNNING_WRITE_QUERY
     RUNNING_WRITE_QUERY = False
 
-    # TODO: delete tmp table
+    payload = request.json
+
+    txid = payload["txid"]
+
+    with DBConnection(CURRENT_SITE) as cursor:
+        cursor.execute(
+            "select table_name from information_schema.tables where table_schema = %s",
+            (DB_NAME,),
+        )
+        existing_relations: List[str] = [
+            list(row.values())[0] for row in cursor.fetchall()
+        ]
+
+        for relation in existing_relations:
+            if relation.startswith(txid):
+                cursor.execute(f"drop table `{relation}`")
+                break
+
+    return {"success": True}
 
 
 if __name__ == "__main__":
