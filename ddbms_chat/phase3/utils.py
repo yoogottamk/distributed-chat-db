@@ -145,7 +145,7 @@ def construct_select_condition_string(
             "("
             + " and ".join(
                 [
-                    construct_select_condition_string(cond)
+                    construct_select_condition_string(cond, rel1_name, rel2_name)
                     for cond in condition.conditions
                 ]
             )
@@ -157,7 +157,7 @@ def construct_select_condition_string(
             "("
             + " or ".join(
                 [
-                    construct_select_condition_string(cond)
+                    construct_select_condition_string(cond, rel1_name, rel2_name)
                     for cond in condition.conditions
                 ]
             )
