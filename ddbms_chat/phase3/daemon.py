@@ -146,6 +146,13 @@ def exec_query(action: str):
                         f"`{relation1_name}`.`{list(intersection)[0]}`"
                     }
 
+                quoted_cols = []
+                for x in rel_cols:
+                    if not x.startswith("`"):
+                        quoted_cols.append(f"`{x}`")
+                    else:
+                        quoted_cols.append(x)
+
                 join_condition = condition_dict_to_object(join_condition)
                 query = (
                     f"create table `{target_relation_name}` as "
@@ -178,13 +185,16 @@ def exec_query(action: str):
                 payload["target_relation_name"],
             )
             reduced_columns = [_process_column_name(col) for col in project_columns]
-            quoted_columns = [
-                f"`{x}`" for x in reduced_columns if not x.startswith("`")
-            ]
+            quoted_cols = []
+            for x in reduced_columns:
+                if not x.startswith("`"):
+                    quoted_cols.append(f"`{x}`")
+                else:
+                    quoted_cols.append(x)
             with DBConnection(CURRENT_SITE) as cursor:
                 query = (
                     f"create table `{target_relation_name}` as "
-                    f"select {','.join(quoted_columns)} from `{relation_name}`"
+                    f"select {','.join(quoted_cols)} from `{relation_name}`"
                 )
                 debug_log(query)
                 cursor.execute(query)
