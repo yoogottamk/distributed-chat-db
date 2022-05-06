@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from typing import Dict, List, Union
 
 import networkx as nx
@@ -266,11 +267,9 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
     # get SelectionNodes directly attached to RelationNode
     relation_attached_selects = {}
     for relation_node in relations:
-        relation_attached_selects[relation_node.name] = []
-
         parent_node = list(qt.predecessors(relation_node))[0]
         if type(parent_node) is SelectionNode:
-            relation_attached_selects[relation_node.name].append(parent_node)
+            relation_attached_selects[relation_node.name] = parent_node
 
     # localize query tree
     qt = localize_query_tree(qt, relations, columns_used_in_query)
@@ -352,18 +351,29 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
 
     # optimization #2
     # push selects directly to fragments
-    for relation_node in relation_nodes:
-        relation_node: RelationNode
+    for rel_name, select in relation_attached_selects.items():
+        for relation_node in relation_nodes:
+            relation_node: RelationNode
 
-        fragment_name = relation_node.name
-        relation_name = re.sub(r"_\d+$", "", fragment_name)
+            fragment_name = relation_node.name
+            relation_name = re.sub(r"_\d+$", "", fragment_name)
 
-        table: Table = syscat_tables.where(name=relation_name)[0]
-        fragment: Fragment = syscat_fragments.where(table=table.id, name=fragment_name)[
-            0
-        ]
+            table: Table = syscat_tables.where(name=relation_name)[0]
+            fragment: Fragment = syscat_fragments.where(
+                table=table.id, name=fragment_name
+            )[0]
 
-        # relation_attached_selects
+            if relation_node.name.startswith(rel_name):
+                parent = list(qt.predecessors(relation_node))[0]
+                sel_node = SelectionNode(select.condition)
+                qt.add_edge(sel_node, relation_node)
+                qt.add_edge(parent, sel_node)
+                qt.remove_edge(parent, relation_node)
+
+        old_parent = list(qt.predecessors(select))[0]
+        old_child = list(qt.successors(select))[0]
+        qt.add_edge(old_parent, old_child)
+        qt.remove_node(select)
 
     # recalculate relation_nodes; some of the fragments were removed
     relation_nodes = []
@@ -492,18 +502,18 @@ if __name__ == "__main__":
     #     "where GM.`user` = 1 and G.`id` = GM.`group`"
     # )
     # test_query = "select * from `group` where `created_by` = 1"
-    # test_query = (
-    #     "select U.`name`, M.`sent_at`, M.`content` "
-    #     "from `message` M, `user` U "
-    #     "where M.`mgroup` = 1 and M.`author` = U.id;"
-    # )
+    test_query = (
+        "select U.`name`, M.`sent_at`, M.`content` "
+        "from `message` M, `user` U "
+        "where M.`mgroup` = 1 and M.`author` = U.id;"
+    )
     # test_query = (
     #     "select G.`gname`, M.`content` "
     #     "from `group` G, `message` M, `group_member` GM, `user` U "
     #     "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.`mgroup` = G.id"
     # )
     # test_query = "select min(mgroup) from message"
-    test_query = "select sum(id) from message group by mgroup"
+    # test_query = "select sum(id) from message group by mgroup"
 
     parsed_query = parse_sql(test_query)
     select_query = parse_select(parsed_query)
