@@ -208,7 +208,9 @@ def cleanup(query_id: str):
             "select table_name from information_schema.tables where table_schema = %s",
             (DB_NAME,),
         )
-        existing_relations: List[str] = [row["TABLE_NAME"] for row in cursor.fetchall()]
+        existing_relations: List[str] = [
+            list(row.values())[0] for row in cursor.fetchall()
+        ]
 
         for relation in existing_relations:
             if relation.startswith(query_id):
