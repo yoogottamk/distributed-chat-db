@@ -31,7 +31,8 @@ def tx_2pc(update_sql: str, query_id: str):
                 raise ValueError("Request failed")
             debug_log("Got response %s", (r.text,))
             responses.append(r.text)
-        except:
+        except Exception as e:
+            print(e)
             tx_log_file.write(f"{query_id}: abort\n")
             tx_log_file.write(f"{query_id}: end_of_transaction\n")
             return
@@ -48,10 +49,11 @@ def tx_2pc(update_sql: str, query_id: str):
                 if not r.ok:
                     debug_log("global-abort failed\n%s", (r.reason,))
                     raise ValueError("Request failed")
-            except:
+            except Exception as e:
                 debug_log("aborted")
                 tx_log_file.write(f"{query_id}: abort\n")
                 tx_log_file.write(f"{query_id}: end_of_transaction\n")
+                print(e)
                 return
         else:
             debug_log("Global commit")
@@ -61,7 +63,8 @@ def tx_2pc(update_sql: str, query_id: str):
                 )
                 if not r.ok:
                     raise ValueError("Request failed")
-            except:
+            except Exception as e:
                 tx_log_file.write(f"{query_id}: failed\n")
                 tx_log_file.write(f"{query_id}: end_of_transaction\n")
+                print(e)
                 return
