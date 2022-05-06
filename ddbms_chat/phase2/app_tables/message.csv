@@ -1,4 +1,4 @@
-id,group,author,content,sent_at
+id,mgroup,author,content,sent_at
 1,1,1,hello 2,1647254210
 2,1,2,hello 1,1647254211
 3,1,2,what are you doing 1,1647254212
