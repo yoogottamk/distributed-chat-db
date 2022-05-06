@@ -126,8 +126,8 @@ def exec_query(action: str):
                 join_condition = condition_dict_to_object(join_condition)
                 query = (
                     f"create table `{target_relation_name}` as "
-                    f"select * from `{relation1_name}`, `{relation2_name}` "
-                    f"where {construct_select_condition_string(join_condition, relation1_name, relation2_name)}"
+                    f"select * from `{relation1_name}` join `{relation2_name}` "
+                    f"on {construct_select_condition_string(join_condition, relation1_name, relation2_name)}"
                 )
                 debug_log(query)
                 cursor.execute(query)
