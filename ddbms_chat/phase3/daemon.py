@@ -317,8 +317,11 @@ def tx_2pc_global_commit():
 
         for relation in existing_relations:
             if relation.startswith(txid):
+                src_relation_name = relation
+                target_relation_name = relation.split("_", 1)[1]
+                cursor.execute(f"drop table `{target_relation_name}`")
                 cursor.execute(
-                    f"rename table `{relation}` to `{relation.split('_', 1)[1]}`"
+                    f"rename table `{src_relation_name}` to `{target_relation_name}`"
                 )
                 break
 
