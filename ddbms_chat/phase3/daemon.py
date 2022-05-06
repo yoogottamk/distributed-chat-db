@@ -169,8 +169,6 @@ def exec_query(action: str):
                 payload["target_relation_name"],
             )
             select_condition = condition_dict_to_object(select_condition)
-            if type(select_condition) is not ConditionAnd:
-                select_condition = ConditionAnd([select_condition])
             with DBConnection(CURRENT_SITE) as cursor:
                 query = (
                     f"create table `{target_relation_name}` as "

@@ -127,6 +127,9 @@ def condition_object_to_dict(cond: Union[ConditionAnd, Condition, ConditionOr]):
 def condition_dict_to_object(
     condition_dict: Dict,
 ) -> Union[ConditionAnd, Condition, ConditionOr]:
+    if condition_dict is None:
+        return None
+
     # Condition
     if "type" not in condition_dict:
         return Condition(**condition_dict)
