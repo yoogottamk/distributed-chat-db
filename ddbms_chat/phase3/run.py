@@ -44,7 +44,7 @@ while True:
             for k in rows[0]:
                 table.add_column(k)
             for row in rows:
-                table.add_row(*list(row.values()))
+                table.add_row(*list(map(str, row.values())))
             console = Console()
             console.print(table)
     except EOFError:
