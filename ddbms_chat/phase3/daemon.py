@@ -93,8 +93,8 @@ def exec_query(action: str):
                     )
                 elif line.startswith(") ENGINE=InnoDB"):
                     processed_sql.append(") ENGINE=InnoDB;")
-                else:
-                    processed_sql.append(line)
+                elif line.strip():
+                    processed_sql.append(line.strip())
 
             sql = "\n".join(processed_sql)
             with DBConnection(CURRENT_SITE) as cursor:
