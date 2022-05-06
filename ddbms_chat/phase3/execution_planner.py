@@ -184,6 +184,13 @@ def execute_plan(
                     "relation2_name": metadata[1],
                     "join_condition": condition_object_to_dict(metadata[2]),
                 }
+            case "semijoin":
+                payload |= {
+                    "relation1_name": metadata[0],
+                    "relation1_column": metadata[1],
+                    "join_condition": condition_object_to_dict(metadata[2]),
+                    "relation2_name": metadata[3],
+                }
             case "select":
                 payload |= {
                     "relation_name": metadata[0],

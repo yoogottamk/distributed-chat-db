@@ -1,5 +1,6 @@
 import atexit
 import readline
+from copy import deepcopy
 from secrets import token_hex
 from traceback import print_exc
 
@@ -11,6 +12,7 @@ from ddbms_chat.config import HOSTNAME, PROJECT_ROOT
 from ddbms_chat.phase2.parser import parse_select, parse_sql
 from ddbms_chat.phase2.query_tree import build_query_tree
 from ddbms_chat.phase2.syscat import read_syscat
+from ddbms_chat.phase2.utils import to_pydot
 from ddbms_chat.phase3.execution_planner import execute_plan, plan_execution
 from ddbms_chat.phase4.utils import tx_2pc
 
@@ -39,6 +41,15 @@ while True:
             select_query = parse_select(parsed_query)
             pprint(select_query, expand_all=True)
             qt = build_query_tree(select_query)
+
+            if select_query.group_by:
+                qtcp = deepcopy(qt)
+                root_node = [n for n, d in qtcp.in_degree() if d == 0][0]
+                title = f"GroupBy {select_query.group_by}"
+                if select_query.having:
+                    title += f" Having {select_query.having}"
+                qtcp.add_edge(title, root_node)
+                to_pydot(qtcp).write_png("qt-final.png")
 
             execution_plan = plan_execution(qt, qid)
             rows = execute_plan(execution_plan, qid, CURRENT_SITE, select_query)
