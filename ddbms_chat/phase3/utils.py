@@ -127,11 +127,18 @@ def _process_column_name(col_name: str):
 
 
 def construct_select_condition_string(
-    condition: Union[Condition, ConditionOr, ConditionAnd]
+    condition: Union[Condition, ConditionOr, ConditionAnd],
+    rel1_name: str,
+    rel2_name: str,
 ):
 
     if type(condition) is Condition:
-        return f"{_process_column_name(condition.lhs)} {condition.op} {_process_column_name(condition.rhs)}"
+        lhs_col = _process_column_name(condition.lhs)
+        rhs_col = _process_column_name(condition.rhs)
+        if lhs_col == rhs_col:
+            return f"`{rel1_name}`.`{lhs_col}` {condition.op} `{rel2_name}`.`{rhs_col}`"
+
+        return f"{lhs_col} {condition.op} {rhs_col}"
 
     if type(condition) is ConditionAnd:
         return (
