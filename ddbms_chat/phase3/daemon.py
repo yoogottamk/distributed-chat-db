@@ -286,7 +286,7 @@ def tx_2pc_prepare():
 
     try:
         with DBConnection(CURRENT_SITE) as cursor:
-            sql = f"create table `{txid}_{relation_name}` as select * `{relation_name}`"
+            sql = f"create table `{txid}_{relation_name}` as select * from `{relation_name}`"
             debug_log(sql)
             cursor.execute(sql)
     except Exception as e:
