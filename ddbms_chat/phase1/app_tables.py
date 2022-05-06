@@ -44,7 +44,7 @@ def create_table_sql(name: str, columns: PyQL[Column]):
     return f"""create table if not exists `{DB_NAME}`.`{name}` (
 {newline.join(column_descriptions)}
 {pk_description}
-engine = InnoDB
+) engine = InnoDB
 """
 
 
