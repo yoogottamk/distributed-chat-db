@@ -1,4 +1,3 @@
-import re
 from collections import defaultdict
 from dataclasses import asdict
 from typing import List
@@ -13,16 +12,8 @@ from ddbms_chat.models.tree import (
     SelectionNode,
     UnionNode,
 )
-from ddbms_chat.phase3.utils import send_request_to_site
+from ddbms_chat.phase3.utils import get_component_relations, send_request_to_site
 from ddbms_chat.utils import DBConnection, debug_log
-
-
-def get_component_relations(rel_name: str) -> List[str]:
-    if "-" not in rel_name:
-        relation_name = re.sub(r"_\d+$", "", rel_name)
-        return [relation_name]
-
-    return sorted(rel_name.split("-", 1)[1].split("-"))
 
 
 def build_relation_name(

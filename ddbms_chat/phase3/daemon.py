@@ -12,6 +12,7 @@ from ddbms_chat.phase3.utils import (
     _process_column_name,
     condition_dict_to_object,
     construct_select_condition_string,
+    get_component_relations,
     send_request_to_site,
 )
 from ddbms_chat.utils import DBConnection, debug_log
@@ -157,7 +158,7 @@ def exec_query(action: str):
                 query = (
                     f"create table `{target_relation_name}` as "
                     f"select {','.join(quoted_cols)} from `{relation1_name}` join `{relation2_name}` "
-                    f"on {construct_select_condition_string(join_condition, relation1_name, relation2_name)}"
+                    f"on {construct_select_condition_string(join_condition, relation1_name, relation2_name, list(rel1_cols), list(rel2_cols))}"
                 )
                 debug_log(query)
                 cursor.execute(query)

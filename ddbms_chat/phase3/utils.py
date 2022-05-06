@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Optional, Union
 
 import requests
@@ -9,6 +10,14 @@ from ddbms_chat.phase2.syscat import read_syscat
 from ddbms_chat.utils import DBConnection
 
 _, _, _, syscat_sites, _ = read_syscat()
+
+
+def get_component_relations(rel_name: str) -> List[str]:
+    if "-" not in rel_name:
+        relation_name = re.sub(r"_\d+$", "", rel_name)
+        return [relation_name]
+
+    return sorted(rel_name.split("-", 1)[1].split("-"))
 
 
 def send_request_to_site(
@@ -134,6 +143,8 @@ def construct_select_condition_string(
     condition: Union[Condition, ConditionOr, ConditionAnd],
     rel1_name: str = "",
     rel2_name: str = "",
+    rel1_cols: List[str] = [],
+    rel2_cols: List[str] = [],
 ):
 
     if type(condition) is Condition:
@@ -141,6 +152,12 @@ def construct_select_condition_string(
         rhs_col = _process_column_name(condition.rhs)
         if lhs_col == rhs_col:
             return f"`{rel1_name}`.{lhs_col} {condition.op} `{rel2_name}`.{rhs_col}"
+
+        if rel1_name and rel2_name and rel1_cols and rel2_cols:
+            if lhs_col in rel1_cols:
+                return f"`{rel1_name}`.{lhs_col} {condition.op} `{rel2_name}`.{rhs_col}"
+            elif lhs_col in rel2_cols:
+                return f"`{rel2_name}`.{lhs_col} {condition.op} `{rel1_name}`.{rhs_col}"
 
         return f"{lhs_col} {condition.op} {rhs_col}"
 
