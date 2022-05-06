@@ -123,8 +123,6 @@ def condition_object_to_dict(cond: Union[ConditionAnd, Condition, ConditionOr]):
             "type": "and",
         }
 
-    raise ValueError(f"Unknown type of condition {type(cond)}")
-
 
 def condition_dict_to_object(
     condition_dict: Dict,
