@@ -126,11 +126,26 @@ def exec_query(action: str):
                 cursor.execute(
                     f"select column_name from information_schema.columns where table_name = '{relation1_name}'"
                 )
-                rel_cols = {list(x.values())[0] for x in cursor.fetchall()}
+                rel1_cols = {list(x.values())[0] for x in cursor.fetchall()}
                 cursor.execute(
                     f"select column_name from information_schema.columns where table_name = '{relation2_name}'"
                 )
-                rel_cols |= {list(x.values())[0] for x in cursor.fetchall()}
+                rel2_cols = {list(x.values())[0] for x in cursor.fetchall()}
+
+                intersection = rel1_cols & rel2_cols
+
+                if len(intersection) > 1:
+                    abort(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        description=f"One or more of these column names are ambiguous: {intersection}",
+                    )
+                if len(intersection) == 0:
+                    rel_cols = rel1_cols | rel2_cols
+                else:
+                    rel_cols = ((rel1_cols | rel2_cols) - intersection) | {
+                        f"`{relation1_name}`.`{list(intersection)[0]}`"
+                    }
+
                 join_condition = condition_dict_to_object(join_condition)
                 query = (
                     f"create table `{target_relation_name}` as "
