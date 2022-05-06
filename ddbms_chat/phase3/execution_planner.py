@@ -198,7 +198,7 @@ def execute_plan(
                 if i == len(plan) - 1 and select_query.group_by:
                     payload |= {
                         "group_by": select_query.group_by,
-                        "having": select_query.having,
+                        "having": condition_object_to_dict(select_query.having),
                     }
         r = send_request_to_site(site_id, "post", f"/exec/{action}", json=payload)
         if not r.ok:
