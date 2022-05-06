@@ -212,7 +212,7 @@ def cleanup(query_id: str):
 
         for relation in existing_relations:
             if relation.startswith(query_id):
-                cursor.execute(f"drop table {relation}")
+                cursor.execute(f"drop table `{relation}`")
 
 
 @authenticate_request
