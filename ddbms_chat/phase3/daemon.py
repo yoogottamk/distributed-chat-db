@@ -290,7 +290,8 @@ def tx_2pc_prepare():
                 f"create table `{txid}_{relation_name}` as select * `{relation_name}`"
             )
             cursor.execute(sql)
-    except:
+    except Exception as e:
+        print(e)
         return "vote-abort"
 
     return "vote-commit"
