@@ -318,7 +318,7 @@ def optimize_and_localize_query_tree(qt: nx.DiGraph, node_map: Dict):
             column_list = list(columns_used_in_query[relation_name])
 
         # if its 1, it is just the primary key
-        if len(column_list) == 1:
+        if len(column_list) == 1 and table.fragment_type == "V":
             qt.remove_node(relation_node)
             continue
 
@@ -487,7 +487,7 @@ def build_query_tree(select_query: SelectQuery) -> nx.DiGraph:
 
 if __name__ == "__main__":
     # test_query = (
-    #     "select G.`name` "
+    #     "select G.`gname` "
     #     "from `group` G, `group_member` GM "
     #     "where GM.`user` = 1 and G.`id` = GM.`group`"
     # )
@@ -495,13 +495,14 @@ if __name__ == "__main__":
     # test_query = (
     #     "select U.`name`, M.`sent_at`, M.`content` "
     #     "from `message` M, `user` U "
-    #     "where M.`group` = 1 and M.`author` = U.id;"
+    #     "where M.`mgroup` = 1 and M.`author` = U.id;"
     # )
     test_query = (
-        "select G.`name`, M.`content` "
+        "select G.`gname`, M.`content` "
         "from `group` G, `message` M, `group_member` GM, `user` U "
-        "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.group = G.id"
+        "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.`mgroup` = G.id"
     )
+    # test_query = "select min(mgroup) from message"
 
     parsed_query = parse_sql(test_query)
     select_query = parse_select(parsed_query)
