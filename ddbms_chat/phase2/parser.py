@@ -375,7 +375,10 @@ def parse_select(sql: Statement) -> SelectQuery:
 
         # group by and having
         if prev_keyword.value == "GROUP BY":
-            group_by += list(token.get_identifiers())
+            if type(token) is Identifier:
+                group_by = [token]
+            else:
+                group_by += list(token.get_identifiers())
             prev_keyword = None
             continue
 

@@ -497,12 +497,13 @@ if __name__ == "__main__":
     #     "from `message` M, `user` U "
     #     "where M.`mgroup` = 1 and M.`author` = U.id;"
     # )
-    test_query = (
-        "select G.`gname`, M.`content` "
-        "from `group` G, `message` M, `group_member` GM, `user` U "
-        "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.`mgroup` = G.id"
-    )
+    # test_query = (
+    #     "select G.`gname`, M.`content` "
+    #     "from `group` G, `message` M, `group_member` GM, `user` U "
+    #     "where GM.`user` = 1 and U.`id` = 1 and GM.`group` = G.`id` and M.`sent_at` > U.`last_seen` and M.`mgroup` = G.id"
+    # )
     # test_query = "select min(mgroup) from message"
+    test_query = "select sum(id) from message group by mgroup"
 
     parsed_query = parse_sql(test_query)
     select_query = parse_select(parsed_query)
