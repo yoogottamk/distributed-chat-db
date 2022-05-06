@@ -24,7 +24,7 @@ def tx_2pc(update_sql: str, query_id: str):
 
         try:
             r = send_request_to_site(
-                site.id, "post", "/2pc/prepare", json={"sql": sql, "txid": query_id}
+                site, "post", "/2pc/prepare", json={"sql": sql, "txid": query_id}
             )
             if not r.ok:
                 debug_log("Failed in prepare\n%s", (r.reason,))
@@ -44,7 +44,7 @@ def tx_2pc(update_sql: str, query_id: str):
             debug_log("Global abort, not all did vote-commit")
             try:
                 r = send_request_to_site(
-                    site.id, "post", "/2pc/global-abort", json={"txid": query_id}
+                    site, "post", "/2pc/global-abort", json={"txid": query_id}
                 )
                 if not r.ok:
                     debug_log("global-abort failed\n%s", (r.reason,))
@@ -59,7 +59,7 @@ def tx_2pc(update_sql: str, query_id: str):
             debug_log("Global commit")
             try:
                 r = send_request_to_site(
-                    site.id, "post", "/2pc/global-commit", json={"txid": query_id}
+                    site, "post", "/2pc/global-commit", json={"txid": query_id}
                 )
                 if not r.ok:
                     raise ValueError("Request failed")
