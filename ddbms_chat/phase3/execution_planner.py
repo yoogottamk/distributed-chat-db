@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+from dataclasses import asdict
 from typing import List
 
 import networkx as nx
@@ -180,12 +181,12 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
                 payload |= {
                     "relation1_name": metadata[0],
                     "relation2_name": metadata[1],
-                    "join_condition": metadata[2],
+                    "join_condition": asdict(metadata[2]),
                 }
             case "select":
                 payload |= {
                     "relation_name": metadata[0],
-                    "select_condition": metadata[1],
+                    "select_condition": asdict(metadata[1]),
                 }
             case "project":
                 payload |= {
