@@ -180,7 +180,7 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
                 payload |= {
                     "relation1_name": metadata[0],
                     "relation2_name": metadata[1],
-                    "join_condition": metadata[3],
+                    "join_condition": metadata[2],
                 }
             case "select":
                 payload |= {
