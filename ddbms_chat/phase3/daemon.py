@@ -165,6 +165,8 @@ def exec_query(action: str):
         case unk_action:
             abort(HTTPStatus.BAD_REQUEST, description=f"Unknown action {unk_action}")
 
+    return {"success": True}
+
 
 @authenticate_request
 @app.get("/fetch/<relation_name>")
