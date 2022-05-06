@@ -211,9 +211,10 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
     with DBConnection(current_site) as cursor:
         cursor.execute(f"select * from `{query_id}-result`")
         rows = cursor.fetchall()
-        print(rows)
 
     for site_id in sites_involved:
         r = send_request_to_site(site_id, "post", f"/cleanup/{query_id}")
         if not r.ok:
             raise ValueError(f"Cleanup failed at site {site_id}")
+
+    return rows

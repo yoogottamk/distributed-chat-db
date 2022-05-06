@@ -21,10 +21,10 @@ FRAGMENTS = PyQL(
         Fragment(id=5, name="group_2", logic="id%4==1", parent=5, table=TABLES[1]),
         Fragment(id=6, name="group_3", logic="id%4==2", parent=6, table=TABLES[1]),
         Fragment(id=7, name="group_4", logic="id%4==3", parent=7, table=TABLES[1]),
-        Fragment(id=8, name="message_1", logic="group|id", parent=4, table=TABLES[2]),
-        Fragment(id=9, name="message_2", logic="group|id", parent=5, table=TABLES[2]),
-        Fragment(id=10, name="message_3", logic="group|id", parent=6, table=TABLES[2]),
-        Fragment(id=11, name="message_4", logic="group|id", parent=7, table=TABLES[2]),
+        Fragment(id=8, name="message_1", logic="mgroup|id", parent=4, table=TABLES[2]),
+        Fragment(id=9, name="message_2", logic="mgroup|id", parent=5, table=TABLES[2]),
+        Fragment(id=10, name="message_3", logic="mgroup|id", parent=6, table=TABLES[2]),
+        Fragment(id=11, name="message_4", logic="mgroup|id", parent=7, table=TABLES[2]),
         Fragment(id=12, name="group_member", logic="", parent=12, table=TABLES[3]),
     ]
 )

@@ -3,7 +3,9 @@ import readline
 from secrets import token_hex
 from traceback import print_exc
 
+from rich.console import Console
 from rich.pretty import pprint
+from rich.table import Table
 
 from ddbms_chat.config import HOSTNAME, PROJECT_ROOT
 from ddbms_chat.phase2.parser import parse_select, parse_sql
@@ -35,7 +37,16 @@ while True:
         qt = build_query_tree(select_query)
 
         execution_plan = plan_execution(qt, qid)
-        execute_plan(execution_plan, qid, CURRENT_SITE)
+        rows = execute_plan(execution_plan, qid, CURRENT_SITE)
+        print(f"{len(rows)} rows fetched")
+        if len(rows) > 0:
+            table = Table(title=f"Query {qid}")
+            for k in rows[0]:
+                table.add_column(k)
+            for row in rows:
+                table.add_row(*list(row.values()))
+            console = Console()
+            console.print(table)
     except EOFError:
         break
     except Exception as e:
