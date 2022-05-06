@@ -110,8 +110,8 @@ def exec_query(action: str):
             )
             with DBConnection(CURRENT_SITE) as cursor:
                 query = (
-                    f"create table {target_relation_name} as "
-                    f"select * from {relation1_name} union select * from {relation2_name}"
+                    f"create table `{target_relation_name}` as "
+                    f"select * from `{relation1_name}` union select * from `{relation2_name}`"
                 )
                 debug_log(query)
                 cursor.execute(query)
@@ -125,8 +125,8 @@ def exec_query(action: str):
             with DBConnection(CURRENT_SITE) as cursor:
                 join_condition = condition_dict_to_object(join_condition)
                 query = (
-                    f"create table {target_relation_name} as "
-                    f"select * from {relation1_name}, {relation2_name} "
+                    f"create table `{target_relation_name}` as "
+                    f"select * from `{relation1_name}`, `{relation2_name}` "
                     f"where {construct_select_condition_string(join_condition)}"
                 )
                 debug_log(query)
@@ -141,11 +141,12 @@ def exec_query(action: str):
             if type(select_condition) is not ConditionAnd:
                 select_condition = ConditionAnd([select_condition])
             with DBConnection(CURRENT_SITE) as cursor:
-                cursor.execute(
-                    f"create table {target_relation_name} as "
-                    f"select * from {relation_name} "
+                query = (
+                    f"create table `{target_relation_name}` as "
+                    f"select * from `{relation_name}` "
                     f"where {construct_select_condition_string(select_condition)}"
                 )
+                cursor.execute(query)
         case "project":
             relation_name, project_columns, target_relation_name = (
                 payload["relation_name"],
@@ -154,10 +155,11 @@ def exec_query(action: str):
             )
             reduced_columns = [_process_column_name(col) for col in project_columns]
             with DBConnection(CURRENT_SITE) as cursor:
-                cursor.execute(
-                    f"create table {target_relation_name} as "
-                    f"select {','.join(reduced_columns)} from {relation_name}"
+                query = (
+                    f"create table `{target_relation_name}` as "
+                    f"select {','.join(reduced_columns)} from `{relation_name}`"
                 )
+                cursor.execute(query)
         case "rename":
             old_name, new_name = payload["old_name"], payload["new_name"]
             with DBConnection(CURRENT_SITE) as cursor:
