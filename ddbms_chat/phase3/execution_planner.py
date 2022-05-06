@@ -14,7 +14,7 @@ from ddbms_chat.models.tree import (
     UnionNode,
 )
 from ddbms_chat.phase3.utils import send_request_to_site
-from ddbms_chat.utils import DBConnection
+from ddbms_chat.utils import DBConnection, debug_log
 
 
 def get_component_relations(rel_name: str) -> List[str]:
@@ -160,6 +160,7 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
             qt.add_node(rel_node, shape="rectangle", style="filled")
             qt.add_edge(grandparent, rel_node)
 
+    debug_log("%s", plan)
     return plan
 
 
