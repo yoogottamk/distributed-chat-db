@@ -8,7 +8,7 @@ tx_log_file = open("tx-coordinator.log", "w+")
 
 def tx_2pc(update_sql: str, query_id: str):
     split_sql = update_sql.strip().split()
-    relation_name = split_sql[1].split("`")
+    relation_name = split_sql[1].strip("`")
     table_id = syscat_table.where(name=relation_name)[0].id
     fragments = syscat_fragment.where(table=table_id)
 
