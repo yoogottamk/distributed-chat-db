@@ -120,10 +120,10 @@ def condition_dict_to_object(
 
 def _process_column_name(col_name: str):
     if "(" not in col_name:
-        return col_name.split(".")[-1]
+        return f"`{col_name.split('.')[-1]}`"
 
     subsections = col_name.split("(")
-    return subsections[0] + "(" + col_name.split(".")[-1]
+    return subsections[0] + "(`" + col_name.split(".")[-1][:-1] + "`)"
 
 
 def construct_select_condition_string(
@@ -136,7 +136,7 @@ def construct_select_condition_string(
         lhs_col = _process_column_name(condition.lhs)
         rhs_col = _process_column_name(condition.rhs)
         if lhs_col == rhs_col:
-            return f"`{rel1_name}`.`{lhs_col}` {condition.op} `{rel2_name}`.`{rhs_col}`"
+            return f"`{rel1_name}`.{lhs_col} {condition.op} `{rel2_name}`.{rhs_col}"
 
         return f"{lhs_col} {condition.op} {rhs_col}"
 
