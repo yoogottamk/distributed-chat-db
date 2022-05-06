@@ -4,6 +4,7 @@ from typing import List
 
 import networkx as nx
 
+from ddbms_chat.models.syscat import Site
 from ddbms_chat.models.tree import (
     JoinNode,
     ProjectionNode,
@@ -12,6 +13,7 @@ from ddbms_chat.models.tree import (
     UnionNode,
 )
 from ddbms_chat.phase3.utils import send_request_to_site
+from ddbms_chat.utils import DBConnection
 
 
 def get_component_relations(rel_name: str) -> List[str]:
@@ -160,7 +162,7 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
     return plan
 
 
-def execute_plan(plan: List, query_id: str):
+def execute_plan(plan: List, query_id: str, current_site: Site):
     sites_involved = set()
 
     for i, (site_id, action, metadata, new_relation_name) in enumerate(plan):
@@ -193,6 +195,24 @@ def execute_plan(plan: List, query_id: str):
         r = send_request_to_site(site_id, "post", f"/exec/{action}", json=payload)
         if not r.ok:
             raise ValueError(f"Failed to execute step {i + 1} of plan")
+
+    r = send_request_to_site(
+        current_site.id,
+        "post",
+        "/exec/fetch",
+        json={
+            "relation_name": plan[-1][-1],
+            "site_id": plan[-1][0],
+            "target_relation_name": f"{query_id}-result",
+        },
+    )
+    if not r.ok:
+        raise ValueError("Failed to retrieve results")
+
+    with DBConnection(current_site) as cursor:
+        cursor.execute(f"select * from {query_id}-result")
+        rows = cursor.fetchall()
+        print(rows)
 
     for site_id in sites_involved:
         r = send_request_to_site(site_id, "post", f"/cleanup/{query_id}")

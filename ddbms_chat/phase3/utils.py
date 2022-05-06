@@ -12,7 +12,7 @@ _, _, _, syscat_sites, _ = read_syscat()
 
 
 def send_request_to_site(
-    site_id: int,
+    site_id: Optional[int],
     method: str,
     endpoint: str,
     params: Optional[Dict] = None,
@@ -24,25 +24,33 @@ def send_request_to_site(
 
     Also manages authentication related stuff
     """
-    sites = syscat_sites.where(id=site_id)
-    if len(sites) == 0:
-        raise ValueError(f"Site {site_id} not present in system catalog")
+    if site_id:
+        sites = syscat_sites.where(id=site_id)
+        if len(sites) == 0:
+            raise ValueError(f"Site {site_id} not present in system catalog")
 
-    site = sites[0]
+        site = sites[0]
+        ip = site.ip
+        name = site.name
+        password = site.password
+    else:
+        ip = "127.0.0.1"
+        name = "local_node"
+        password = ""
 
-    r = requests.get(f"http://{site.ip}:12117/ping")
+    r = requests.get(f"http://{ip}:12117/ping")
     if not r.ok:
-        raise ValueError(f"Site {site.name} is down")
+        raise ValueError(f"Site {name} is down")
 
     method_fn = {
         "get": requests.get,
         "post": requests.post,
     }
 
-    req_headers = (headers or {}) | {"Authorization": site.password}
+    req_headers = (headers or {}) | {"Authorization": password}
 
     r = method_fn[method](
-        f"http://{site.ip}:12117{endpoint}",
+        f"http://{ip}:12117{endpoint}",
         params=params,
         headers=req_headers,
         json=json,

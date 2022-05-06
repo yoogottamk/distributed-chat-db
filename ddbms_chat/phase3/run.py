@@ -21,6 +21,8 @@ sites = syscat_sites.where(name=HOSTNAME)
 if len(sites) > 0:
     CURRENT_SITE = sites[0]
     qid += f"s{CURRENT_SITE.id}"
+else:
+    raise ValueError("Running on a node not in system catalog")
 
 readline.read_history_file(history_file)
 
@@ -33,7 +35,7 @@ while True:
         qt = build_query_tree(select_query)
 
         execution_plan = plan_execution(qt, qid)
-        execute_plan(execution_plan, qid)
+        execute_plan(execution_plan, qid, CURRENT_SITE)
     except EOFError:
         break
     except Exception as e:
