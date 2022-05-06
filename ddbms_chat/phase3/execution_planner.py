@@ -4,6 +4,7 @@ from typing import List
 
 import networkx as nx
 
+from ddbms_chat.models.query import SelectQuery
 from ddbms_chat.models.syscat import Site
 from ddbms_chat.models.tree import (
     JoinNode,
@@ -161,7 +162,9 @@ def plan_execution(qt: nx.DiGraph, query_id: str):
     return plan
 
 
-def execute_plan(plan: List, query_id: str, current_site: Site):
+def execute_plan(
+    plan: List, query_id: str, current_site: Site, select_query: SelectQuery
+):
     sites_involved = set()
 
     for i, (site_id, action, metadata, new_relation_name) in enumerate(plan):
@@ -191,6 +194,12 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
                     "relation_name": metadata[0],
                     "project_columns": metadata[1],
                 }
+
+                if i == len(plan) - 1 and select_query.group_by:
+                    payload |= {
+                        "group_by": select_query.group_by,
+                        "having": select_query.having,
+                    }
         r = send_request_to_site(site_id, "post", f"/exec/{action}", json=payload)
         if not r.ok:
             raise ValueError(f"Failed to execute step {i + 1} of plan")

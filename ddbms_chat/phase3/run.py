@@ -37,7 +37,7 @@ while True:
         qt = build_query_tree(select_query)
 
         execution_plan = plan_execution(qt, qid)
-        rows = execute_plan(execution_plan, qid, CURRENT_SITE)
+        rows = execute_plan(execution_plan, qid, CURRENT_SITE, select_query)
         print(f"{len(rows)} rows fetched")
         if len(rows) > 0:
             table = Table(title=f"Query {qid}")
