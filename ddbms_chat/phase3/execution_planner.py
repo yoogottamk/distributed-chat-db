@@ -12,7 +12,11 @@ from ddbms_chat.models.tree import (
     SelectionNode,
     UnionNode,
 )
-from ddbms_chat.phase3.utils import get_component_relations, send_request_to_site
+from ddbms_chat.phase3.utils import (
+    condition_object_to_dict,
+    get_component_relations,
+    send_request_to_site,
+)
 from ddbms_chat.utils import DBConnection, debug_log
 
 
@@ -175,12 +179,12 @@ def execute_plan(plan: List, query_id: str, current_site: Site):
                 payload |= {
                     "relation1_name": metadata[0],
                     "relation2_name": metadata[1],
-                    "join_condition": asdict(metadata[2]),
+                    "join_condition": condition_object_to_dict(metadata[2]),
                 }
             case "select":
                 payload |= {
                     "relation_name": metadata[0],
-                    "select_condition": asdict(metadata[1]),
+                    "select_condition": condition_object_to_dict(metadata[1]),
                 }
             case "project":
                 payload |= {

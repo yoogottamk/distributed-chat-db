@@ -107,6 +107,23 @@ def create_syscat_rows(
         fill_tables(cursor, [[Table(table_row_id, dst_relation, "-")], columns])
 
 
+def condition_object_to_dict(cond: Union[ConditionAnd, Condition, ConditionOr]):
+    if type(cond) is Condition:
+        return {"lhs": cond.lhs, "op": cond.op, "rhs": cond.rhs}
+
+    if type(cond) is ConditionOr:
+        return {
+            "conditions": [condition_object_to_dict(x) for x in cond.conditions],
+            "type": "or",
+        }
+
+    if type(cond) is ConditionAnd:
+        return {
+            "conditions": [condition_object_to_dict(x) for x in cond.conditions],
+            "type": "and",
+        }
+
+
 def condition_dict_to_object(
     condition_dict: Dict,
 ) -> Union[ConditionAnd, Condition, ConditionOr]:
