@@ -6,6 +6,8 @@
 ## Application Description
 A group chat application where users can create multiple groups with other users and send messages.
 
+Check [QUERIES](./QUERIES.md) for example queries.
+
 ### Features
 - Set your status
 - Check when your friends were last active on the application
