@@ -1,7 +1,16 @@
 # Distributed Data Systems Project
-|Name| Roll Number|
-|---|---|
-|Yoogottam Khandelwal|2018101019|
+Data is fragmented using various methods and stored on 4 different nodes, all running mysql. The project was to implement a Distributed DBMS that provides an interface that makes it seem as if the data was not fragmented.
+
+## How to run
+```bash
+docker-compose up
+# ...wait until you see flask logs coming up
+# in a separate terminal, choose any container n{1..4} you want
+docker-compose exec n1 bash
+# run your queries
+# e.g.: select * from `group`
+# you can find a little more complex queries in QUERIES.md
+```
 
 ## Application Description
 A group chat application where users can create multiple groups with other users and send messages.
@@ -52,3 +61,6 @@ No fragmentation plan, the full table will exist on a single site.
 |message_3|3|
 |message_4|4|
 |group_members|4|
+
+## Modifying schema
+This project loads system catalog (that contains information about relations, fragments and allocation rules) from a csv file. You can edit [these files](./ddbms_chat/phase2/syscat/) to change the database. Note that you must also create csv files for each relation [here](./ddbms_chat/phase2/app_tables/).

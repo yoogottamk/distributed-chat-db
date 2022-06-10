@@ -4,7 +4,7 @@
 Given user id $ID (= 1),
 
 ```sql
-select G.`name`
+select G.`gname`
   from `group` G, `group_member` GM
 where
   GM.`user` = $ID
@@ -55,7 +55,7 @@ Given group id $ID (= 1),
 select U.`name`, M.`sent_at`, M.`content`
   from `message` M, `user` U
 where
-  M.`group` = $ID and
+  M.`mgroup` = $ID and
   M.`author` = U.id;
 ```
 
@@ -80,13 +80,13 @@ yk1,1647254213,nothing
 Given user id $ID (= 1),
 
 ```sql
-select G.`name`, M.`content`
+select G.`gname`, M.`content`
   from `group` G, `message` M, `group_member` GM, `user` U
 where
   GM.`user` = $ID and
   U.`id` = $ID and
   GM.`group` = G.`id` and
-  M.`group` = G.`id` and
+  M.`mgroup` = G.`id` and
   M.`sent_at` > U.`last_seen`;
 ```
 

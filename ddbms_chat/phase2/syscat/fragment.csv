@@ -6,8 +6,8 @@ id,name,logic,parent,table
 5,group_2,id%4==1,5,2
 6,group_3,id%4==2,6,2
 7,group_4,id%4==3,7,2
-8,message_1,group|id,4,3
-9,message_2,group|id,5,3
-10,message_3,group|id,6,3
-11,message_4,group|id,7,3
+8,message_1,mgroup|id,4,3
+9,message_2,mgroup|id,5,3
+10,message_3,mgroup|id,6,3
+11,message_4,mgroup|id,7,3
 12,group_member,,12,4
